@@ -1,0 +1,17 @@
+# AJUSTES MANUAIS DO UNIVERSO DA COLETA
+#
+# O universo se monta sozinho a cada coleta, a partir da base do overnight
+# (COTAHIST): papéis negociados na última semana com média de volume
+# financeiro dos últimos 20 pregões — descartando os 10% de maior volume —
+# acima de R$ 5 milhões (~170 papéis).
+#
+# Use este arquivo só para exceções, um papel por linha:
+#   +TICKER   inclui mesmo abaixo do corte
+#   -TICKER   exclui mesmo acima do corte
+# Papel que entra ganha na hora os 60 dias de 5 min e ~2 anos de 60 min
+# que o Yahoo tiver. Papel que sai para de ser atualizado, mas o que já
+# foi coletado continua na base.
+#
+# Exemplos (tire o # da frente para valer):
+# +TICKER
+# -IBOV11

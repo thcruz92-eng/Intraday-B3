@@ -1,0 +1,22 @@
+# Publica só a pasta public/ (index.html, app.js compilado e ícones).
+# A base de candles NÃO vai no site: o app lê a pasta dados/ direto do
+# GitHub. Por isso a coleta diária não republica nada no Netlify.
+[build]
+  command = "echo 'App ja compilado — nada a construir.'"
+  publish = "public"
+  functions = "netlify/functions"
+
+  # Proteção de crédito (cada deploy de produção custa 15 créditos).
+  # Primeira camada: o [skip ci] na mensagem de commit da coleta.
+  # Segunda camada (esta): só publica quando mudou algo do APP —
+  # public/, netlify/ ou este arquivo. Commit só de dados, de universo.txt,
+  # do coletor ou do workflow cancela o deploy.
+  #
+  # Semântica: sai 0 -> cancela o deploy; sai diferente de 0 -> deploy roda.
+  # Na primeira publicação (sem commit anterior em cache) sempre publica.
+  ignore = "[ -n \"$CACHED_COMMIT_REF\" ] && [ \"$CACHED_COMMIT_REF\" != \"$COMMIT_REF\" ] && git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- public netlify netlify.toml"
+
+[[headers]]
+  for = "/app.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
