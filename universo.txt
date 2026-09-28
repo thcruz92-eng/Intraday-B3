@@ -5,6 +5,10 @@
 # financeiro dos últimos 20 pregões — descartando os 10% de maior volume —
 # acima de R$ 5 milhões (~170 papéis).
 #
+# Entram sempre, fora desse critério, as séries de referência:
+# IBOV (Ibovespa), USDBRL (dólar, em pontos do WDO), SP500F (S&P 500
+# futuro) e DXY (índice do dólar). Para tirar uma delas: -USDBRL, por ex.
+#
 # Use este arquivo só para exceções, um papel por linha:
 #   +TICKER   inclui mesmo abaixo do corte
 #   -TICKER   exclui mesmo acima do corte

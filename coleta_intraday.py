@@ -19,6 +19,11 @@ A base de 60 min vem do Yahoo uma vez (carga inicial de 2 anos) e daí
 em diante é montada somando os candles de 5 min de cada pregão — as
 duas bases nunca divergem e a coleta diária faz metade das consultas.
 
+Séries de REFERÊNCIA (v2): além das ações, a coleta grava sempre o
+Ibovespa (IBOV), o dólar à vista (USDBRL), o S&P 500 futuro (SP500F) e o
+índice do dólar (DXY) — base para estudar WIN e WDO. Elas ficam só no
+horário dos minicontratos (09:00–18:30) e só em dia de pregão da B3.
+
 Modos:
     python coleta_intraday.py                    # incremental (o normal)
     python coleta_intraday.py --completo         # rebaixa tudo que o Yahoo tem
@@ -37,6 +42,9 @@ Regras fixas (e por quê):
     quando os preços batem com o que está guardado.
   * Arquivo só é reescrito quando o conteúdo muda — sem commit à toa.
   * Quem decide verde/vermelho é só o modo --verificar.
+  * Horário SEMPRE de Brasília: o Yahoo informa o fuso da bolsa de cada
+    símbolo (o dólar vem no fuso de Londres); aqui tudo é convertido para
+    UTC-3, o fuso da B3.
 
 Formato de um pregão de um ativo (lista plana de inteiros):
     [m0, p0,  dm, do, dh, dl, dc, v,  dm, do, dh, dl, dc, v, ...]
@@ -111,6 +119,22 @@ HORAS_TOLERANCIA = 15
 COBERTURA_MINIMA = 0.80
 
 FUSO_BR = timezone(timedelta(hours=-3))  # Brasil sem horário de verão desde 2019
+OFFSET_BR = -3 * 3600
+
+# Séries de referência (não são ações da B3): nome na base -> símbolo no Yahoo.
+# Mesma lista em src/lib/especiais.js e netlify/functions/aovivo.mjs.
+ESPECIAIS = {
+    "IBOV": "^BVSP",       # Ibovespa à vista — referência do WIN
+    "USDBRL": "BRL=X",     # dólar à vista — referência do WDO
+    "SP500F": "ES=F",      # S&P 500 futuro (CME)
+    "DXY": "DX-Y.NYB",     # índice do dólar (ICE)
+}
+# guardadas só no horário dos minicontratos da B3
+JANELA_ESPECIAIS = (9 * 60, 18 * 60 + 30)
+# Multiplicador do preço do Yahoo antes de guardar em centavos. O dólar vira
+# pontos do WDO (R$ por US$ 1.000, como o mini dólar é cotado): 5,2345 -> 5.234,50.
+# Sem isso, guardado em centavos de real, o dólar perderia a 3ª e a 4ª casa.
+ESCALA = {"USDBRL": 1000}
 
 # Mesma lista do projeto overnight — mantenha as duas iguais.
 FERIADOS_B3 = {
@@ -246,6 +270,10 @@ class Bloqueio(Exception):
     """429/403/queda de rede — o problema é o acesso, não o papel."""
 
 
+def simbolo_yahoo(ticker: str) -> str:
+    return ESPECIAIS.get(ticker) or f"{ticker}.SA"
+
+
 def _contexto_tls():
     ctx = ssl.create_default_context()
     ca = os.environ.get("SSL_CERT_FILE")
@@ -263,10 +291,12 @@ def _get_json(url: str, timeout: int = 40):
         return json.loads(r.read().decode("utf-8"))
 
 
-def parse_yahoo(js: dict, intervalo: int):
+def parse_yahoo(js: dict, intervalo: int, escala: float = 1):
     """Resposta do v8/chart -> {dia: [(minuto, o, h, l, c, v)]}.
 
     Cuidados:
+      * horário sempre de Brasília (UTC-3), qualquer que seja o fuso da
+        bolsa informado pelo Yahoo (o dólar vem no fuso de Londres)
       * candle sem preço (sem negócio) vem null -> descartado
       * máxima/mínima incoerentes com abertura/fechamento são corrigidas
       * linha fora da grade (o "último negócio" que o Yahoo às vezes
@@ -278,8 +308,7 @@ def parse_yahoo(js: dict, intervalo: int):
     res = (chart.get("result") or [None])[0]
     if not res:
         raise SemDados("resposta vazia")
-    meta = res.get("meta") or {}
-    off = int(meta.get("gmtoffset", -10800))
+    off = OFFSET_BR
     ts = res.get("timestamp") or []
     q = ((res.get("indicators") or {}).get("quote") or [{}])[0]
     O, H, L, C, V = (q.get(k) or [] for k in ("open", "high", "low", "close", "volume"))
@@ -293,7 +322,7 @@ def parse_yahoo(js: dict, intervalo: int):
             continue
         if None in (o, h, l, c) or min(o, h, l, c) <= 0:
             continue
-        o, h, l, c = (int(round(x * 100)) for x in (o, h, l, c))
+        o, h, l, c = (int(round(x * escala * 100)) for x in (o, h, l, c))
         h, l = max(h, o, c), min(l, o, c)
         local = datetime.fromtimestamp(t + off, tz=timezone.utc)
         dia = local.date().isoformat()
@@ -319,16 +348,45 @@ def parse_yahoo(js: dict, intervalo: int):
     return out
 
 
+def calendario_b3(overnight):
+    """Pregões que a B3 de fato teve: as datas do COTAHIST do overnight (arquivo
+    oficial). A lista de feriados do código só cobre 2026-2027; o COTAHIST cobre
+    todo o histórico. Devolve (datas, última data do arquivo)."""
+    if not overnight or not overnight.get("dados"):
+        return set(), None
+    datas = {l[0] for linhas in overnight["dados"].values() for l in linhas}
+    return datas, (max(datas) if datas else None)
+
+
+def recortar_especial(dias, calendario=(set(), None)):
+    """Série de referência: só pregão da B3 e só 09:00–18:30.
+    Até a última data do COTAHIST vale o calendário oficial; depois dela (o
+    arquivo sai com atraso), dia útil fora da lista de feriados."""
+    pregoes, ate = calendario
+    ini, fim = JANELA_ESPECIAIS
+    out = {}
+    for dia, barras in dias.items():
+        if ate and dia <= ate:
+            if dia not in pregoes:
+                continue
+        elif not eh_pregao(date.fromisoformat(dia)):
+            continue
+        b = [x for x in barras if ini <= x[0] < fim]
+        if b:
+            out[dia] = b
+    return out
+
+
 def consultar_yahoo(ticker: str, intervalo: int, rng: str):
     """Tenta os dois hosts do Yahoo, com espera crescente em caso de 429."""
-    sym = urllib.parse.quote(f"{ticker}.SA")
+    sym = urllib.parse.quote(simbolo_yahoo(ticker), safe="")
     ultimo = None
     for tentativa in range(3):
         host = YAHOO_HOSTS[tentativa % len(YAHOO_HOSTS)]
         url = (f"{host}/v8/finance/chart/{sym}?interval={intervalo}m"
                f"&range={rng}&includePrePost=false&events=")
         try:
-            return parse_yahoo(_get_json(url), intervalo)
+            return parse_yahoo(_get_json(url), intervalo, ESCALA.get(ticker, 1))
         except urllib.error.HTTPError as e:
             if e.code == 404:
                 raise SemDados("Yahoo não tem esse papel (404)")
@@ -365,11 +423,12 @@ def consultar_reserva(ticker: str, intervalo: int, rng: str):
 class Coletor:
     """Decide entre acesso direto e reserva, e conta as consultas."""
 
-    def __init__(self):
+    def __init__(self, calendario=(set(), None)):
         self.modo = "direto"
         self.falhas_seguidas = 0
         self.consultas = 0
         self.desistiu = False
+        self.calendario = calendario
 
     def buscar(self, ticker, intervalo, rng):
         if self.desistiu:
@@ -382,7 +441,7 @@ class Coletor:
             else:
                 r = consultar_reserva(ticker, intervalo, rng)
             self.falhas_seguidas = 0
-            return r
+            return recortar_especial(r, self.calendario) if ticker in ESPECIAIS else r
         except Bloqueio:
             self.falhas_seguidas += 1
             if self.falhas_seguidas >= FALHAS_SEGUIDAS_PARA_RESERVA:
@@ -543,12 +602,12 @@ def montar_universo(overnight, indice_ant, vol_min_mm):
                 ativos.append(t)
         origem = f"COTAHIST do overnight ({ult[8:10]}/{ult[5:7]}/{ult[:4]})"
     elif indice_ant and indice_ant.get("universo", {}).get("ativos"):
-        ativos = list(indice_ant["universo"]["ativos"])
+        ativos = [t for t in indice_ant["universo"]["ativos"] if t not in ESPECIAIS]
         origem = "índice anterior (base do overnight inacessível)"
     else:
         ativos = list(UNIVERSO_SEMENTE)
         origem = "lista semente (base do overnight inacessível)"
-    final = sorted((set(ativos) | incluir) - excluir)
+    final = sorted((set(ativos) | incluir | set(ESPECIAIS)) - excluir)
     return {
         "criterio": (f"média dos últimos 20 pregões, descartando os 10% de maior volume, "
                      f">= R$ {vol_min_mm:g} MM"),
@@ -556,6 +615,7 @@ def montar_universo(overnight, indice_ant, vol_min_mm):
         "origem": origem,
         "incluidos_a_mao": sorted(incluir),
         "excluidos_a_mao": sorted(excluir),
+        "especiais": {t: s for t, s in ESPECIAIS.items() if t in final},
         "ativos": final,
     }
 
@@ -706,7 +766,8 @@ def coletar(args):
     indice_ant = ler_indice()
     overnight = baixar_overnight()
     universo = montar_universo(overnight, indice_ant, args.vol_min)
-    log(f"Universo: {len(universo['ativos'])} ativos — {universo['origem']}")
+    log(f"Universo: {len(universo['ativos'])} ativos — {universo['origem']} "
+        f"(+ referências: {', '.join(universo['especiais'])})")
 
     alvo = universo["ativos"]
     if args.ativos:
@@ -719,7 +780,7 @@ def coletar(args):
                           .get("ativos") or {}) for iv in INTERVALOS}
 
     loja = Loja()
-    coletor = Coletor()
+    coletor = Coletor(calendario_b3(overnight))
     contagem = {k: 0 for k in ("novo", "completa", "igual", "ajustado", "menor",
                                "em_andamento", "derivado_60", "coberto_por_5m")}
     falhas = []
