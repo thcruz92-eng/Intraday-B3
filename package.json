@@ -1,0 +1,8 @@
+{
+  "name": "intraday-b3",
+  "private": true,
+  "description": "Dependência da função netlify/functions/dados.mjs (configurações compartilhadas entre aparelhos). O app em public/ já vai compilado.",
+  "dependencies": {
+    "@netlify/blobs": "10.7.13"
+  }
+}
