@@ -6,6 +6,10 @@ Mantém a base de candles intradiários que o app lê direto do GitHub.
 
     dados/5m/AAAA-MM.json    candles de 5 min
     dados/60m/AAAA-MM.json   candles de 60 min
+    dados/diario/AAAA-MM.json  (v5) o COTAHIST diário (abertura, máxima, mínima,
+                             fechamento oficiais e volume financeiro), copiado
+                             da base do overnight — é dele que o app tira as
+                             medidas das estratégias antes da abertura
     dados/indice.json        o app lê este primeiro: meses, assinaturas,
                              universo, cobertura e conferência com o COTAHIST
 
@@ -85,6 +89,15 @@ OVERNIGHT_URL = os.environ.get(
     "OVERNIGHT_URL",
     "https://raw.githubusercontent.com/thcruz92-eng/leilao-overnight/main/public/base_b3.json",
 )
+
+# v5: cópia mensal do COTAHIST para o app (dados/diario/). As medidas das estratégias
+# (frequência de gap positivo, noite x dia, histórico do papel) precisam do fechamento
+# OFICIAL: o do Yahoo não traz o leilão de fechamento e difere ~0,23% do da B3, o que
+# embaralha o gap noite a noite. Entra todo papel que, em algum momento desde DIARIO_DESDE,
+# teve média aparada de 20 pregões >= DIARIO_VOL_MIN_MM (sem viés de sobrevivência).
+DIARIO_DIR = os.path.join(DIR_DADOS, "diario")
+DIARIO_DESDE = os.environ.get("DIARIO_DESDE", "2023-01-01")
+DIARIO_VOL_MIN_MM = float(os.environ.get("DIARIO_VOL_MIN_MM", "10"))
 
 YAHOO_HOSTS = [h.rstrip("/") for h in os.environ.get(
     "YAHOO_BASE",
@@ -621,6 +634,79 @@ def montar_universo(overnight, indice_ant, vol_min_mm):
 
 
 # ------------------------------------------------------------------
+# COTAHIST diário para o app (v5)
+# ------------------------------------------------------------------
+def exportar_diario(overnight):
+    """Grava dados/diario/AAAA-MM.json a partir da base do overnight.
+
+    Um mês: {"dias": {"AAAA-MM-DD": {"PETR4": [abertura, máxima, mínima, fechamento,
+    financeiro]}}} — preços em centavos, financeiro em R$ mil (inteiros). Só reescreve
+    o mês que mudou. Devolve (arquivos gravados, resumo para o índice) ou ([], None)
+    se a base do overnight não veio."""
+    if not overnight or not overnight.get("dados"):
+        return [], None
+    escolhidos = {}
+    for t, linhas in overnight["dados"].items():
+        if t in ESPECIAIS:
+            continue
+        linhas = [l for l in linhas if l[0] >= DIARIO_DESDE]
+        if len(linhas) < 20:
+            continue
+        fins = [l[5] or 0 for l in linhas]
+        if max(fins) < DIARIO_VOL_MIN_MM * 1e6:
+            continue
+        if any(media_aparada(fins[i - 20:i]) >= DIARIO_VOL_MIN_MM * 1e6 for i in range(20, len(fins) + 1)):
+            escolhidos[t] = linhas
+    por_mes = {}
+    for t, linhas in escolhidos.items():
+        for l in linhas:
+            if not (l[1] and l[2] and l[3] and l[4]):
+                continue
+            linha = [round(l[1] * 100), round(l[2] * 100), round(l[3] * 100), round(l[4] * 100),
+                     round((l[5] or 0) / 1000)]
+            por_mes.setdefault(l[0][:7], {}).setdefault(l[0], {})[t] = linha
+    gravados, meses, pregoes = [], [], set()
+    for mes in sorted(por_mes):
+        dias = {d: {t: por_mes[mes][d][t] for t in sorted(por_mes[mes][d])} for d in sorted(por_mes[mes])}
+        pregoes.update(dias)
+        doc = {
+            "formato": 1,
+            "fonte": "COTAHIST / B3 (base do projeto overnight)",
+            "mes": mes,
+            "campos": "[abertura, máxima, mínima, fechamento] em centavos, financeiro em R$ mil",
+            "assinatura": assinatura(dias),
+            "dias": dias,
+        }
+        arq = os.path.join(DIARIO_DIR, f"{mes}.json")
+        igual = False
+        if os.path.exists(arq):
+            with open(arq, encoding="utf-8") as fh:
+                try:
+                    igual = json.load(fh).get("assinatura") == doc["assinatura"]
+                except Exception:
+                    igual = False
+        if not igual:
+            os.makedirs(DIARIO_DIR, exist_ok=True)
+            with open(arq, "w", encoding="utf-8") as fh:
+                json.dump(doc, fh, ensure_ascii=False, separators=(",", ":"))
+            gravados.append(arq)
+        meses.append({"mes": mes, "arquivo": f"diario/{mes}.json", "assinatura": doc["assinatura"],
+                      "bytes": os.path.getsize(arq)})
+    ult = overnight.get("ultimo_pregao") or (max(pregoes) if pregoes else None)
+    meta = {
+        "fonte": f"COTAHIST do overnight ({ult[8:10]}/{ult[5:7]}/{ult[:4]})" if ult else "COTAHIST do overnight",
+        "criterio": (f"papéis que desde {DIARIO_DESDE} tiveram, em algum momento, média aparada de "
+                     f"20 pregões >= R$ {DIARIO_VOL_MIN_MM:g} MM"),
+        "primeiro": min(pregoes) if pregoes else None,
+        "ultimo": max(pregoes) if pregoes else None,
+        "pregoes": len(pregoes),
+        "ativos": len(escolhidos),
+        "meses": meses,
+    }
+    return gravados, meta
+
+
+# ------------------------------------------------------------------
 # Cobertura, conferência e índice
 # ------------------------------------------------------------------
 def varrer_base(intervalo):
@@ -702,7 +788,7 @@ def conferir_cotahist(overnight, intervalo, n_pregoes=10):
     }
 
 
-def montar_indice(indice_ant, universo, checado, execucao, conferencia):
+def montar_indice(indice_ant, universo, checado, execucao, conferencia, diario=None):
     idx = {
         "formato": 1,
         "gerado_em": agora_br().isoformat(timespec="seconds"),
@@ -717,6 +803,10 @@ def montar_indice(indice_ant, universo, checado, execucao, conferencia):
         "conferencia": conferencia,
         "execucao": execucao,
     }
+    # v5: COTAHIST diário para o app; se a base do overnight não veio, mantém o anterior
+    diario = diario or (indice_ant or {}).get("diario")
+    if diario:
+        idx["diario"] = diario
     for iv in INTERVALOS:
         b = varrer_base(iv)
         b["checado"] = {t: checado[iv][t] for t in sorted(checado[iv])}
@@ -850,6 +940,11 @@ def coletar(args):
                     f"{gravou} pregão(ões) gravado(s)")
 
     gravados = loja.salvar()
+    diario_gravados, diario = exportar_diario(overnight)
+    if diario:
+        log(f"Diário (COTAHIST): {diario['primeiro']} → {diario['ultimo']} · {diario['ativos']} papéis · "
+            f"{len(diario_gravados)} mês(es) reescrito(s)")
+    gravados += diario_gravados
     execucao = {
         "inicio": agora.isoformat(timespec="seconds"),
         "duracao_s": round(time.time() - t0),
@@ -863,7 +958,7 @@ def coletar(args):
         "total_falhas": len(falhas),
     }
     conferencia = {str(iv): conferir_cotahist(overnight, iv) for iv in INTERVALOS}
-    indice = montar_indice(indice_ant, universo, checado, execucao, conferencia)
+    indice = montar_indice(indice_ant, universo, checado, execucao, conferencia, diario)
     if gravados or indice_mudou(indice, indice_ant):
         os.makedirs(DIR_DADOS, exist_ok=True)
         with open(INDICE, "w", encoding="utf-8") as f:

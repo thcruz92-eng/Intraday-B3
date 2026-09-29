@@ -4,40 +4,26 @@ Base de candles intradiários da B3 (5 e 60 min), pregão ao vivo e motor de
 estratégias de day trade. Mesmo esquema do overnight: o app mora no Netlify,
 os dados moram no GitHub e um robô do GitHub Actions coleta tudo sozinho.
 
-**Novidades da v4** (28/09/2026)
-- **OPERAR é a tela inicial.** As estratégias cadastradas, da melhor para a pior pela média
-  por operação dos últimos 60 pregões (com os custos de agora), e o que cada uma faria no pregão:
-  antes das 10h, os papéis e a **faixa de preço de abertura que dispara** cada compra ou venda;
-  depois, as operações e o resultado (pregão de hoje pelo Yahoo, sob demanda; pregões passados
-  pela base). Mostra também quantos contratos de WIN o hedge pede.
-- **ESTRATÉGIAS → COMPARAR**: todas lado a lado num período escolhido por dia — curva acumulada
-  ou diária, tabela ordenável (resultado, por pregão, média, acerto, desvio, pior, melhor, max
-  DD, sem sinal, ativos), contribuição de cada papel e planilha das operações.
-- **ESTRATÉGIAS → LABORATÓRIO**: parte de uma estratégia cadastrada, muda os parâmetros, roda e
-  **salva como estratégia sua** (entra no OPERAR e no COMPARAR, com linha tracejada).
-- **CONFIGURAÇÕES** (igual ao overnight): taxa %, **taxa fixa por operação em R$** (nova), custo
-  do hedge, capital, piso, impacto, preço mínimo, janela do ranking, quais estratégias aparecem
-  e o que é só deste aparelho. Grava na **nuvem do Netlify** (mesma função `dados` do
-  overnight): o tablet e o computador veem os mesmos números.
-- **READ ME**: cada aba, cada controle e a ficha de cada estratégia.
-- **7 estratégias cadastradas** (eram 2): reversão neutra, a mesma saindo às 10h10, compra em
-  tendência, 3 por lado, só compra, só venda e vende os mais voláteis.
+**Novidades da v6** (29/09/2026)
+- **Uma estratégia seletiva: Compra no leilão · nota.** Cada papel líquido ganha uma nota antes
+  da abertura — o resultado esperado da operação, por um modelo que cruza 36 indicadores e é
+  refeito a cada trimestre só com os pregões anteriores. A lista mostra os papéis com nota ≥ 0,30%
+  e o **COMPRA ATÉ** de cada um (o preço máximo do leilão, 0,5% abaixo do índice); você compra
+  **um por pregão**, o primeiro da lista que abrir até lá. Saída: **alvo +0,4 ATR** (~+1%),
+  **stop −1 ATR** (~−2,6%), senão leilão de fechamento. Fora da amostra (jan/2024 → set/2026):
+  **~3,4 operações por semana, 74% de acerto, +0,42% por operação**; com a exigência em 0,45%:
+  ~1 por semana, 79%, +0,58%.
+- **"por quê"** em cada papel da lista: os indicadores que mais puxaram a nota dele naquele dia.
+- **CONFIGURAÇÕES → Exigência da nota** (0,25% a 0,50%, com o que a pesquisa mediu em cada nível)
+  e **1 por pregão** como padrão (a configuração da v5 com 3 passa para 1).
+- A **lista curta da v5** fica como referência no ESTRATÉGIAS; a venda continua em observação e
+  desligada ("só compra").
+- A saída no **leilão de fechamento** do motor passa a usar o fechamento oficial (COTAHIST) em
+  vez do último candle do Yahoo.
 
-**Novidades da v3**
-- **Campo "Saída"** nas estratégias: fim do pregão (padrão) ou zerar às 10h10, 10h15, 10h30,
-  11h ou 12h. Medido na base real: o ganho da reversão do gap está nos **10 primeiros minutos**
-  (veja "Estratégias" abaixo).
-
-**Novidades da v2**
-- **Séries de referência** para estudar WIN e WDO: Ibovespa (`IBOV`), dólar à
-  vista em pontos do WDO (`USDBRL`), S&P 500 futuro (`SP500F`) e índice do dólar
-  (`DXY`). Entram sempre na coleta, só no horário dos minicontratos (9h às
-  18h30) e só em dia de pregão da B3. Já na primeira coleta vêm **2 anos em
-  60 min**.
-- **Aba ESTRATÉGIAS funcionando**: as estratégias da pesquisa de 27/09/2026
-  (reversão do gap relativo ao índice) rodam sobre a base de 5 min, com
-  parâmetros editáveis, período por dia, hedge no WIN, curva e lista de
-  operações.
+**Da v5** (se você ainda está na v4): OPERAR pelo relógio do pregão, ACOMPANHAR e RESULTADOS
+(suas operações na nuvem, ao lado do modelo), direção das sugestões, e o **COTAHIST diário na
+base** (`dados/diario/`), de onde saem a nota e o COMPRA ATÉ.
 
 ## Como os dados chegam
 
@@ -46,7 +32,8 @@ os dados moram no GitHub e um robô do GitHub Actions coleta tudo sozinho.
 | **Candles de 5 min** | Yahoo Finance | robô, 19h30 / 23h30 / 9h30, todo dia | carga inicial = 60 dias corridos (~43 pregões); daí em diante **acumula** um pregão por dia |
 | **Candles de 60 min** | Yahoo Finance | carga inicial; depois = soma dos de 5 min | ~2 anos |
 | **Séries de referência** (IBOV, USDBRL, SP500F, DXY) | Yahoo Finance | junto com as ações | as mesmas profundidades; só 9h–18h30 e só em pregão da B3 |
-| **Pregão de hoje** | Yahoo Finance, pela função do Netlify | GRÁFICO: ao abrir, atualiza a cada minuto com o pregão aberto · OPERAR: só quando você aperta | atraso de 15 min do Yahoo |
+| **COTAHIST diário** (v5) | base do projeto overnight (arquivo oficial da B3) | robô, junto com os candles | desde 2023; abertura, máxima, mínima, fechamento e volume oficiais |
+| **Pregão de hoje** | Yahoo Finance, pela função do Netlify | GRÁFICO: ao abrir, atualiza a cada minuto com o pregão aberto · OPERAR e ACOMPANHAR: só quando você aperta | atraso de 15 min do Yahoo |
 
 A coleta **não gasta crédito do Netlify**: o robô grava na pasta `dados/` do
 GitHub e o app lê de lá. O site só é republicado quando você sobe arquivo do
@@ -54,35 +41,31 @@ app (`public/`, `netlify/`, `package.json`), 15 créditos cada vez.
 
 ---
 
-# Já está com a v3? Troque só isto
+# Já está com a v4? Troque só isto
 
-Conferi arquivo por arquivo contra o que está no seu repositório (28/09, 16h). **São 5
-arquivos** — GitHub → Add file → Upload files, arrastando **o conteúdo** da pasta
-`ARRASTAR-ESTE-CONTEUDO` (as subpastas `public/` e `netlify/` vão junto):
+Conferi arquivo por arquivo contra o que está no seu repositório (29/09). **São 3 arquivos**
+— GitHub → Add file → Upload files, arrastando **o conteúdo** da pasta `ARRASTAR-ESTE-CONTEUDO`
+(a subpasta `public/` vai junto):
 
 | Arquivo | Por que |
 |---|---|
-| `public/app.js` | OPERAR, COMPARAR, LABORATÓRIO, CONFIGURAÇÕES, READ ME, taxa fixa em R$ |
-| `netlify/functions/dados.mjs` | **novo** — guarda as CONFIGURAÇÕES (e as suas estratégias) na nuvem do Netlify |
-| `package.json` | **novo** — a dependência da função acima (`@netlify/blobs`); o Netlify instala sozinho |
-| `netlify.toml` | passa a republicar também quando o `package.json` muda |
+| `public/app.js` | o app novo: a Compra no leilão · nota, OPERAR pelo relógio, ACOMPANHAR, RESULTADOS |
+| `coleta_intraday.py` | passa a gravar o COTAHIST diário em `dados/diario/` (é dele que sai a nota) |
 | `README.md` | esta explicação |
 
-Um commit só = **um** deploy no Netlify (15 créditos). Nada para configurar: o Netlify Blobs
-já vem no plano, igual ao overnight. Coleta, workflow, `aovivo.mjs` e `universo.txt` **não
-mudaram**.
+Um commit só = **um** deploy no Netlify (15 créditos). Funções, workflow, `netlify.toml`,
+`package.json` e `universo.txt` **não mudaram**. (Se já tinha subido a v5, são os mesmos 3
+arquivos; o `coleta_intraday.py` é igual ao da v5.)
 
-Depois do deploy, abra o app: ele já abre no OPERAR. Em CONFIGURAÇÕES, a linha de cima
-deve dizer **“sincronizado com a nuvem”**. Se disser “só neste aparelho: a função de dados não
-está publicada”, o deploy ainda não terminou (ou o `dados.mjs` não subiu dentro de
-`netlify/functions/`).
+**Depois de subir, rode a coleta uma vez** (GitHub → Actions → Coleta intraday → Run workflow →
+Run workflow). Leva poucos minutos e grava a pasta `dados/diario/`. Sem ela o app funciona, mas
+avisa que a lista está saindo do fechamento do Yahoo (sem o leilão de fechamento). Daí em
+diante a coleta das 9h30 traz o fechamento oficial de ontem antes da pré-abertura.
 
-Se você tinha mudado taxa, capital ou piso na aba ESTRATÉGIAS da v3, confira em
-CONFIGURAÇÕES: o primeiro aparelho que abrir a v4 leva os números dele para a nuvem, e os outros
-passam a usar esses.
+As configurações da v4/v5 continuam valendo (taxa, capital, piso, direção); o hedge e o
+LABORATÓRIO da v4 são descartados. As operações que você marcar no ACOMPANHAR ficam na nuvem.
 
-Está na v1 ou v2? Suba também `coleta_intraday.py`, `netlify/functions/aovivo.mjs` e
-`universo.txt` (séries de referência IBOV, dólar, S&P e DXY).
+Está na v3 ou antes? Suba também `netlify/functions/dados.mjs`, `package.json` e `netlify.toml`.
 
 Se ainda não subiu nada, siga do começo.
 
@@ -90,12 +73,12 @@ Se ainda não subiu nada, siga do começo.
 
 # PASSO 0 — Descompactar
 
-Descompacte **`intraday-b3-v4.zip`**. Dentro da pasta tem:
+Descompacte **`intraday-b3-v6.zip`**. Dentro da pasta tem:
 
 ```
 .github/workflows/coleta-intraday.yml   ← agenda do robô (pasta oculta!)
 netlify/functions/aovivo.mjs            ← pregão ao vivo + reserva da coleta
-netlify/functions/dados.mjs             ← configurações na nuvem (todos os aparelhos)
+netlify/functions/dados.mjs             ← configurações e operações na nuvem (todos os aparelhos)
 public/                                  ← o app (index.html, app.js, ícones)
 package.json                             ← dependência da função de dados
 coleta_intraday.py                       ← o robô de coleta
@@ -198,81 +181,46 @@ Abra o endereço no Chrome → menu ⋮ → **Adicionar à tela inicial**.
 
 # Como usar
 
-**OPERAR** (abre sozinho). As estratégias da melhor para a pior; toque no nome para abrir.
-- **Antes das 10h**: cada estratégia mostra os papéis e a faixa de preço de abertura que dispara
-  a compra ou a venda (em R$ e em variação contra o fechamento de ontem — o número da tela de
-  leilão da corretora), com a quantidade em lotes de 100. O campo **gap esperado do índice**
-  desloca as faixas (use a variação do WIN ou do Ibovespa teórico).
-- **Depois das 10h**: **buscar o pregão de hoje** traz as operações de cada estratégia e o
-  resultado até agora (Yahoo, 15 min de atraso — o candle das 10h aparece por volta das 10h15).
-- **Pregão passado**: escolha o dia; o resultado é o de verdade, pela base.
-- **WIN**: exposição líquida (compras − vendas) ÷ valor do contrato (Ibovespa × R$ 0,20),
-  arredondado; comprada → vende WIN, vendida → compra.
+O dia, na ordem em que o app mostra:
 
-**ESTRATÉGIAS → COMPARAR**: período por dia → **rodar comparação**. Toque no nome da
-estratégia na tabela para ver quanto cada papel somou; **planilha das operações** baixa um CSV
-que o Excel abre direto.
+| Quando | O que fazer | Onde |
+|---|---|---|
+| antes das 9h45 | Abra o OPERAR e ponha os papéis da lista numa lista do Profit, com a variação teórica do leilão. Lista vazia = hoje não tem entrada | OPERAR |
+| 9h45 → 9h55 | Digite a variação do WIN (ou o Ibovespa teórico). O app refaz o COMPRA ATÉ, a nota e a ordem da lista | OPERAR |
+| 9h55 → 9h59 | Desça a lista de cima para baixo: o primeiro papel com o preço teórico **até o COMPRA ATÉ** é o do dia. Compra limitada no leilão **ao COMPRA ATÉ**, na quantidade da tabela. Só um. Pule papel caindo 8% ou mais além do índice (notícia) | corretora |
+| 10h | Executou: venda limitada no alvo e venda stop no stop (OCO, se houver). Não executou: cancele | corretora |
+| depois das 10h15 | "buscar a abertura de hoje": o que entrou, alvo, stop, último preço. Marque a entrada | OPERAR · ACOMPANHAR |
+| call de fechamento | Venda no leilão o que ainda estiver aberto (16h55–17h no verão dos EUA; 17h55–18h no resto do ano) | corretora |
+| depois | Marque a saída. À noite o pregão entra na base e o modelo aparece ao lado | ACOMPANHAR · RESULTADOS |
 
-**ESTRATÉGIAS → LABORATÓRIO**: ponto de partida → parâmetros → **rodar backtest** → se valer
-a pena, **salvar como estratégia cadastrada**.
+Na dúvida sobre o índice, digite o valor **mais negativo**: errar para baixo só tira operações;
+errar para cima põe papéis demais na lista.
 
-**CONFIGURAÇÕES**: os números do app inteiro. Mudou, o OPERAR se refaz sozinho.
-**voltar os números ao padrão** não mexe no piso de liquidez (é decisão sua).
+**ESTRATÉGIAS**: a nota e a lista curta da v5 lado a lado num período (2 anos em candles de
+60 min, ou desde julho em candles de 5 min) — curva, estatísticas, contribuição de cada papel,
+planilha.
 
-**READ ME**: tudo isto, com a ficha de cada estratégia.
+**CONFIGURAÇÕES**: direção (só compra / só venda / as duas), exigência da nota, máximo por
+pregão, taxas, capital, piso, estratégias visíveis. **voltar os números ao padrão** não mexe no
+piso nem na direção.
 
-## Estratégias cadastradas
+**READ ME**: tudo isto, com a ficha de cada estratégia, os 36 indicadores da nota e o que foi
+testado e não passou.
 
-Pesquisa com o COTAHIST 2023–2026 (regras escolhidas no treino até jun/2025, conferidas uma vez
-no teste de jul/2025 a set/2026), R$ 10 mil por operação, taxa 0,046%:
+## Estratégias
 
-| Estratégia | Regra | Situação | Teste |
+Pesquisa de 29/09/2026 com o COTAHIST (2023–2026) e os candles de 60 min (out/2023–set/2026),
+R$ 10 mil por operação, taxa 0,046%, sem hedge. A nota foi validada em walk-forward: cada pregão
+de jan/2024 a set/2026 decidido só com o modelo treinado nos pregões anteriores.
+
+| Estratégia | Regra | Situação | Fora da amostra (60 min) |
 |---|---|---|---|
-| Reversão do gap · neutro + WIN | vende quem abre +0,5% a +1,5% acima do índice, compra quem abre −0,5% a −1,5% abaixo; WIN no sentido oposto; zera no fechamento | validada | +0,221%/op, Sharpe 5,9, 15/15 meses positivos |
-| … · sai 10h10 | a mesma, zerando às 10h10 | hipótese | só na base de 5 min: +0,128%/op, pior queda −R$ 756 |
-| Compra no gap em tendência + WIN | só a compra, em papel acima da média de 200 pregões e volatilidade < 2,5% | validada | +0,275%/op, Sharpe 5,8 |
-| Reversão do gap · 3 por lado + WIN | os 3 gaps mais fortes de cada lado | variante | +0,228%/op, Sharpe 3,8 |
-| Compra no gap de baixa + WIN | só a ponta comprada | validada | +0,185%/op, Sharpe 4,1 |
-| Venda no gap de alta + WIN | só a ponta vendida (confirme a venda a descoberto no clube) | validada | +0,255%/op, Sharpe 4,9 |
-| Vende os 5 mais voláteis + WIN | vende no leilão os 5 mais voláteis de 20 pregões | no limite | +0,188%/op, t 2,0 |
+| Compra no leilão · nota | lista = nota no COMPRA ATÉ ≥ 0,30%; entra o 1º que abrir até o COMPRA ATÉ (0,5% ou mais abaixo do índice); 1 por pregão; alvo +0,4 ATR, stop −1 ATR, senão fechamento | validada | ~3,4 por semana, 74% de acerto, +0,42%/op (2024 +0,38%, 2025 +0,47%, 2026 +0,39%) |
+| Compra no leilão · lista curta (v5) | lista dos 15 de maior nota da v5; compra quem abrir ≤ −0,5% contra o índice, até 3; alvo +2%, stop −3% | referência (só no ESTRATÉGIAS) | ~8 por semana, 61%, +0,29% a +0,34%/op |
+| Venda no leilão · lista curta | o espelho da v5 (vende quem abrir ≥ +0,5%), stop +3% | em observação (desligada: “só compra”) | +0,16% (t 1,7) |
 
-## O que a base real já mostrou (28/09/2026, 59 pregões de 5 min)
-
-Rodado sobre a base coletada no seu repositório, com o motor do próprio app:
-
-**1. A entrada tem que ser no leilão de abertura.** O efeito some em 15 minutos:
-
-| Entrada | Média por operação |
-|---|---|
-| leilão das 10h00 | **+0,152%** |
-| 10h05 | +0,060% |
-| 10h15 | −0,014% |
-
-Ou seja: o gap precisa ser calculado no **preço teórico da pré-abertura** (09h45–10h00) e a
-ordem enviada para o leilão. Não funciona olhar o gap às 10h05 e entrar depois.
-
-**2. O ganho acontece nos 10 primeiros minutos.** Decompondo o pregão (bruto, já sem o
-movimento do índice): 10h00→10h05 +0,107%, 10h05→10h10 +0,088%, 10h10→10h15 +0,001%,
-10h15→fechamento +0,023%. Segurar o dia inteiro rende quase o mesmo por operação, mas com
-muito mais risco:
-
-| Saída | Média/op | Acerto | Sharpe | Pior queda |
-|---|---|---|---|---|
-| fim do pregão (padrão) | +0,152% | 55,2% | 4,26 | −R$ 2.892 |
-| **10h10** | +0,128% | 59,7% | **10,03** | **−R$ 756** |
-| 12h00 | +0,185% | 57,7% | 6,72 | −R$ 2.088 |
-
-**Cuidado ao ler isto:** são 59 pregões, o horário de saída foi escolhido *olhando esses
-mesmos dados* (não é validação fora da amostra) e o spread pago na saída não está na conta —
-o efeito aguenta até ~0,15% de custo total por operação e desaparece em 0,2%. Por isso o
-padrão do app continua no fim do pregão, que é o que os 3,7 anos de COTAHIST validaram.
-A “sai 10h10” está cadastrada para você acompanhar isso no OPERAR e no COMPARAR conforme a base
-cresce (ela ganha um pregão por dia).
-
-**3. A base do Yahoo não traz o leilão de fechamento** (o último candle é 16:50 em 94% dos
-casos). Isso explica a conferência com o COTAHIST ficar em ~78% em vez de ~97%, e **não
-atrapalha**: a abertura bate exata com a B3 (diferença mediana 0,0000%) e trocar o leilão pelo
-candle das 16:50 muda −0,003 pp por operação.
+Regras de poucas condições escolhidas no passado, filtros de mercado, alvos curtos, entradas no
+meio do pregão e o WIN sozinho foram testados e não passaram — os números estão no READ ME.
 
 ---
 
@@ -321,9 +269,9 @@ candle das 16:50 muda −0,003 pp por operação.
 | `public/app.js` | o app compilado (fonte vai separada) |
 | `public/index.html`, ícones, `manifest.webmanifest` | página e instalação no tablet |
 | `netlify/functions/aovivo.mjs` | pregão ao vivo + reserva da coleta |
-| `netlify/functions/dados.mjs` | CONFIGURAÇÕES e estratégias salvas, na nuvem do Netlify (Blobs) |
+| `netlify/functions/dados.mjs` | CONFIGURAÇÕES e as operações do ACOMPANHAR, na nuvem do Netlify (Blobs) |
 | `package.json` | dependência da função de dados (o Netlify instala no deploy) |
-| `coleta_intraday.py` | coleta, grava `dados/`, confere com o COTAHIST, audita (`--verificar`) |
+| `coleta_intraday.py` | coleta, grava `dados/` (candles e, na v5, o COTAHIST diário em `dados/diario/`), confere com o COTAHIST, audita (`--verificar`) |
 | `.github/workflows/coleta-intraday.yml` | agenda o robô |
 | `universo.txt` | exceções do universo |
 | `dados/` | a base (criada pelo robô — não mexa à mão) |
