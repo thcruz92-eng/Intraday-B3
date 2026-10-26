@@ -84,6 +84,11 @@ jobs:
           fi
           python coleta_intraday.py $ARGS
 
+      # Termômetro da abertura: saúde financeira (CVM, base do overnight)
+      # e betas ao IBOV/dólar. Falha aqui não derruba a coleta.
+      - name: Atualizar termômetro da abertura
+        run: python termometro.py || echo "::warning::termômetro não atualizou"
+
       - name: Publicar base atualizada
         if: always()
         run: |

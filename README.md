@@ -4,6 +4,19 @@ Base de candles intradiários da B3 (5 e 60 min), pregão ao vivo e motor de
 estratégias de day trade. Mesmo esquema do overnight: o app mora no Netlify,
 os dados moram no GitHub e um robô do GitHub Actions coleta tudo sozinho.
 
+**Novidade: Termômetro da abertura** (26/10/2026) — botão **🌡️ Termômetro** no canto do app
+(`public/termometro.html`).
+- Você digita o cenário (Ibovespa e dólar na abertura, DI antes e a alta do DI, prêmio político das
+  estatais) e a página estima a abertura de cada papel pelo beta ao Ibovespa e ao dólar. Teóricos
+  colados do Profit e a **abertura real** (botão, depois das 10h15) substituem a estimativa.
+- **Nota de saúde 0–100** de cada empresa pelo último balanço na CVM: lucro, dívida líquida/EBIT,
+  dívida de curto prazo contra o caixa, ROE e o **choque do DI** (dívida líquida × alta do DI contra o
+  lucro). Bancos e seguradoras com nota manual (`termometro.py`).
+- **Compra**: as maiores quedas entre as saudáveis (sem estatais, por padrão), com o **excesso** de
+  queda além do beta. **Venda**: a lista editável da tese "Flávio vence", com veredito por papel.
+- A base sai do `termometro.py` (balanços da base do overnight + COTAHIST + IBOV/dólar de 60 min),
+  gravada em `dados/termometro.json`; o robô atualiza em toda coleta.
+
 **Novidades da v6** (29/09/2026)
 - **Uma estratégia seletiva: Compra no leilão · nota.** Cada papel líquido ganha uma nota antes
   da abertura — o resultado esperado da operação, por um modelo que cruza 36 indicadores e é
@@ -273,6 +286,8 @@ meio do pregão e o WIN sozinho foram testados e não passaram — os números e
 | `package.json` | dependência da função de dados (o Netlify instala no deploy) |
 | `coleta_intraday.py` | coleta, grava `dados/` (candles e, na v5, o COTAHIST diário em `dados/diario/`), confere com o COTAHIST, audita (`--verificar`) |
 | `.github/workflows/coleta-intraday.yml` | agenda o robô |
+| `termometro.py` | gera `dados/termometro.json` (saúde financeira e betas) para o Termômetro da abertura |
+| `public/termometro.html` | o Termômetro da abertura |
 | `universo.txt` | exceções do universo |
 | `dados/` | a base (criada pelo robô — não mexa à mão) |
 | `netlify.toml` | publica `public/` e as funções, e só republica quando o app muda (`public/`, `netlify/`, `package.json`) |
