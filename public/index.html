@@ -43,7 +43,7 @@ button.prim{background:#1F6FEB;border-color:#1F6FEB}
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
 th,td{padding:7px 8px;border-bottom:1px solid var(--borda);text-align:left;vertical-align:top}
 th{color:var(--fraco);font-weight:500;font-size:12px;position:sticky;top:0;background:var(--painel);z-index:1;white-space:nowrap;cursor:pointer;user-select:none}
-tr.p{cursor:pointer}
+tr[data-t]{cursor:pointer}
 tr.p:hover td{background:var(--realce)}
 td.n{white-space:nowrap}
 td.resumo{min-width:280px;font-size:12.5px;line-height:1.4}
@@ -71,12 +71,13 @@ tr.rm{display:none}
   tr.p td{display:block;padding:0;border:none;white-space:normal;min-width:0}
   tr.p td:nth-child(2) .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   tr:hover td{background:transparent}
-  tr.p td:first-child,td.resumo{display:none}
+  tr.p td:first-child,tr.p td.resumo{display:none}
   tr.p td:nth-child(2){grid-column:1}tr.p td:nth-child(3){grid-column:2}tr.p td:nth-child(4){grid-column:3}
   tr.p td:nth-child(5){grid-column:1/4;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-top:2px}
   tr.p td:nth-child(5) .sub{display:inline}
-  tr.rm{display:block}tr.rm td{display:block;padding:4px 0 10px;font-size:12.5px;line-height:1.4;border-bottom:1px solid var(--borda)}
-  tr.det{display:block}tr.det td{display:block;padding:8px 0}
+  tr.rm{display:block;width:100%}tr.rm td{display:block;width:100%;padding:4px 0 10px;font-size:12.5px;line-height:1.4;border-bottom:1px solid var(--borda)}
+  tr.det{display:block;width:100%}tr.det td{display:block;width:100%;padding:8px 0}
+  tr.p:hover td,tr.rm:hover td{background:transparent}
   .sub{white-space:normal}
 }
 </style>
@@ -411,10 +412,10 @@ tr.rm{display:none}
       const hj = `<b class="${cls(x.r)}">${pct(x.r)}</b>${tagFonte(x.fonte)}<span class="sub">${pp(x.excesso)} vs beta</span>`;
       return `<tr class="p" data-t="${x.t}"><td class="n fraco">${i + 1}</td><td class="n"><b>${x.t}</b><span class="sub" title="${esc(x.p.nome)}">${esc((x.p.nome || "").replace(/\s+(S\.?A\.?|S\/A)(\s.*)?$/i, "").replace(/\s+-\s.*$/, "").slice(0, 26))}</span></td>
         <td class="n"><span class="verd v${x.v.k}">${x.v.txt}</span><span class="sub">nota <span class="nota" style="${corNota(x.s.nota)}">${x.s.nota ?? "—"}</span></span></td>
-        <td class="n">${hj}</td><td class="n">${prec}</td><td class="resumo">${x.resumo}</td></tr><tr class="rm p" data-t="${x.t}"><td colspan="5">${x.resumo}</td></tr>` +
+        <td class="n">${hj}</td><td class="n">${prec}</td><td class="resumo">${x.resumo}</td></tr><tr class="rm" data-t="${x.t}"><td colspan="5">${x.resumo}</td></tr>` +
         (aberto.has(x.t) ? `<tr class="det"><td colspan="6">${detalhes(x)}</td></tr>` : "");
     }).join("") || `<tr><td colspan="6" class="fraco">nada com esses filtros</td></tr>`;
-    $("tabela").querySelectorAll("tr.p").forEach((tr) => tr.onclick = () => { const t = tr.dataset.t; aberto.has(t) ? aberto.delete(t) : aberto.add(t); render(); });
+    $("tabela").querySelectorAll("tr[data-t]").forEach((tr) => tr.onclick = () => { const t = tr.dataset.t; aberto.has(t) ? aberto.delete(t) : aberto.add(t); render(); });
     $("btCopiar").onclick = () => {
       const txt = lista.slice(0, 60).map((x) => x.t).join("\n");
       navigator.clipboard?.writeText(txt).then(() => $("copiado").textContent = `${Math.min(60, lista.length)} copiados`, () => $("copiado").textContent = txt.replace(/\n/g, " "));
