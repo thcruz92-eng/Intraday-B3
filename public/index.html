@@ -38,6 +38,13 @@ button.prim{background:#1F6FEB;border-color:#1F6FEB}
 .kpi b{display:block;font-size:17px}
 .abas{display:flex;gap:4px;flex-wrap:wrap}
 .abas button{border-radius:20px;padding:6px 14px}
+.filtros{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:10px;padding:8px 10px;background:var(--bg);border:1px solid var(--borda);border-radius:8px}
+.filtros label{flex-direction:row;align-items:center;gap:5px;white-space:nowrap;font-size:12px}
+.filtros input[type=number]{width:62px;padding:4px 6px}
+.filtros select{width:auto;padding:4px 6px}
+.filtros input[type=checkbox]{width:auto;margin:0}
+.filtros .ativo{color:var(--texto)}
+.filtros .sep{width:1px;height:18px;background:var(--borda)}
 .abas button.on{background:#1F6FEB;border-color:#1F6FEB}
 .rolagem{overflow-x:auto;margin-top:8px}
 table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
@@ -89,7 +96,7 @@ tr.rm{display:none}
 <main>
 <header>
   <h1>🌡️ Termômetro B3</h1>
-  <span class="tag" title="versão do app · 26/10/2026 — coluna de opções (só CALL) com as regras do app de derivativos">v2.1 · 26/10/2026</span>
+  <span class="tag" title="versão do app · 26/10/2026 — filtros combináveis (nota, veredito, excesso, lucro constante, desconto ao justo/consenso, ROE, dívida)">v2.2 · 26/10/2026</span>
   <span class="fraco pq" id="info">carregando a base…</span>
 </header>
 
@@ -137,6 +144,25 @@ tr.rm{display:none}
       <button id="btCopiar">copiar tickers</button><span class="fraco pq" id="copiado"></span>
     </div>
   </div>
+  <div class="filtros">
+    <span class="fraco pq" style="margin-right:4px"><b>filtros</b></span>
+    <label>nota ≥ <input id="fNota" type="number" step="5" min="0" max="100" placeholder="—" /></label>
+    <label>veredito <select id="fVer"><option value="">qualquer</option><option value="1">só COMPRAR</option><option value="12">COMPRAR + OBSERVAR</option></select></label>
+    <span class="sep"></span>
+    <label><input id="fExc" type="checkbox" /> caiu mais que o IBOV (além do beta)</label>
+    <label>queda ≥ <input id="fQueda" type="number" step="1" placeholder="—" />%</label>
+    <span class="sep"></span>
+    <label><input id="fLucro5" type="checkbox" /> lucro em todos os últimos 5 anos</label>
+    <label><input id="fCaixa" type="checkbox" /> caixa líquido</label>
+    <label>ROE ≥ <input id="fRoe" type="number" step="1" placeholder="—" />%</label>
+    <label>dív.líq/EBIT ≤ <input id="fDiv" type="number" step="0.5" placeholder="—" />×</label>
+    <span class="sep"></span>
+    <label>≥ <input id="fJusto" type="number" step="5" placeholder="—" />% abaixo do justo</label>
+    <label>≥ <input id="fCons" type="number" step="5" placeholder="—" />% abaixo do consenso</label>
+    <label><input id="fOpc" type="checkbox" /> com opções líquidas</label>
+    <button id="btFiltros" style="padding:4px 10px">limpar filtros</button>
+    <span class="fraco pq" id="nFiltro"></span>
+  </div>
   <div class="fraco pq" id="legenda" style="margin-top:6px"></div>
   <div class="rolagem"><table id="tabela"></table></div>
 </section>
@@ -159,7 +185,9 @@ tr.rm{display:none}
     (() => { try { return localStorage.getItem("intra1:repo"); } catch { return null; } })() || "thcruz92-eng/intraday-b3";
   const FONTES = [`https://raw.githubusercontent.com/${REPO}/main/dados/`, `https://cdn.jsdelivr.net/gh/${REPO}@main/dados/`];
   const CHAVE = "termometro.v4";
-  const CAMPOS = ["ibov", "usd", "juroLongo", "notaMin", "quedaMin", "ordem", "panico", "premio", "diBase", "diNovo", "premioRisco", "g", "volMin", "estatais", "teoricos"];
+  const CAMPOS = ["ibov", "usd", "juroLongo", "notaMin", "quedaMin", "ordem", "panico", "premio", "diBase", "diNovo", "premioRisco", "g", "volMin", "estatais", "teoricos",
+    "fNota", "fVer", "fQueda", "fRoe", "fDiv", "fJusto", "fCons"];
+  const CHECKS = ["fExc", "fLucro5", "fCaixa", "fOpc"];
   const $ = (id) => document.getElementById(id);
 
   let base = null, volume = {}, reais = {}, ibovReal = null, aba = "compra", aberto = new Set();
@@ -168,6 +196,7 @@ tr.rm{display:none}
   const salvar = () => {
     const s = {};
     for (const id of CAMPOS) s[id] = $(id).value;
+    for (const id of CHECKS) s[id] = $(id).checked;
     s.reais = reais; s.ibovReal = ibovReal; s.aba = aba;
     try { localStorage.setItem(CHAVE, JSON.stringify(s)); } catch {}
   };
@@ -214,7 +243,7 @@ tr.rm{display:none}
   }
 
   function fundamentos(p) {
-    const u = p.porUnit || 1, ok = p.acoes > 0 && !p.acoesSuspeito;
+    const u = p.porUnit || 1, ok = p.acoes > 0 && !p.acoesSuspeito && !p.semNota;
     const vpa = ok && p.pl != null ? p.pl / p.acoes * u : null;
     const lpa = ok && p.lucro12 != null ? p.lucro12 / p.acoes * u : null;
     const anos = (p.anos || []).slice(-5), lucros = anos.map((a) => a[1]);
@@ -450,9 +479,29 @@ tr.rm{display:none}
     else if (aba === "armadilha") lista = L.filter((x) => x.v.k === 4 && x.r <= -c.quedaMin);
     else lista = L;
     if (q) lista = L.filter((x) => x.t.includes(q) || (x.p.nome || "").toUpperCase().includes(q));
+    const antes = lista.length;
+    const fn = (id) => num($(id).value), fv = $("fVer").value;
+    const filtros = [
+      [fn("fNota") != null, (x) => x.s.nota != null && x.s.nota >= fn("fNota")],
+      [fv !== "", (x) => fv.includes(String(x.v.k))],
+      [$("fExc").checked, (x) => x.excesso < 0],
+      [fn("fQueda") != null, (x) => x.r <= -fn("fQueda") / 100],
+      [$("fLucro5").checked, (x) => x.fu.anos >= 5 && x.fu.comLucro === x.fu.anos],
+      [$("fCaixa").checked, (x) => !x.s.manual && x.s.nota != null && x.s.dl <= 0],
+      [fn("fRoe") != null, (x) => x.fu.roe != null && x.fu.roe >= fn("fRoe") / 100],
+      [fn("fDiv") != null, (x) => !x.s.manual && x.s.nota != null && (x.s.dl <= 0 || (x.s.dlEbit != null && x.s.dlEbit <= fn("fDiv")))],
+      [fn("fJusto") != null, (x) => x.dist != null && x.dist <= -fn("fJusto") / 100],
+      [fn("fCons") != null, (x) => x.distCons != null && x.distCons <= -fn("fCons") / 100],
+      [$("fOpc").checked, (x) => !!OPCOES[x.t]],
+    ];
+    const ativos = filtros.filter(([on]) => on);
+    for (const [, teste] of ativos) lista = lista.filter(teste);
+    $("nFiltro").textContent = ativos.length ? `${ativos.length} filtro${ativos.length > 1 ? "s" : ""}: ${lista.length} de ${antes}` : `${antes} papéis`;
+    document.querySelectorAll(".filtros label").forEach((l) => { const el = l.querySelector("input,select"); l.classList.toggle("ativo", el.type === "checkbox" ? el.checked : el.value !== ""); });
     const ordem = $("ordem").value;
     const chave = { forca: (x) => -x.forca, excesso: (x) => x.excesso, dist: (x) => x.dist ?? 9, queda: (x) => x.r, nota: (x) => -(x.s.nota ?? -1) };
-    lista.sort((a, b) => (aba === "todos" && !q ? a.v.k - b.v.k : 0) || chave[ordem](a) - chave[ordem](b));
+    const ordV = (x) => x.v.k === 0 ? 9 : x.v.k;  // SEM DADOS por último
+    lista.sort((a, b) => (aba === "todos" && !q ? ordV(a) - ordV(b) : 0) || chave[ordem](a) - chave[ordem](b));
     $("legenda").innerHTML = aba === "compra" ? `saudáveis (nota ≥ ${c.notaMin}) caindo ${pct(-c.quedaMin, 0)} ou mais, líquidas. Ordem: ${$("ordem").selectedOptions[0].text}. Clique na linha para os detalhes. <b>Índice:</b> ${venc().txt} de <b>BOVA11</b> no dinheiro = aposta no repique sem risco de um papel só.`
       : aba === "armadilha" ? "caem muito, mas o balanço não aguenta o DI (nota abaixo da mínima, prejuízo ou estatal)." : "todos os papéis, por veredito. Clique na linha para os detalhes.";
     const colunas = ["#", "papel", "veredito", "hoje", "preço", "resumo", "opções (só CALL)"];
@@ -496,6 +545,9 @@ tr.rm{display:none}
 
   async function iniciar() {
     for (const [id, v] of Object.entries(guardado)) if ($(id) && typeof v === "string" && CAMPOS.includes(id)) $(id).value = v;
+    for (const id of CHECKS) $(id).checked = guardado[id] === true;
+    for (const id of CHECKS) $(id).addEventListener("change", render);
+    $("btFiltros").onclick = () => { for (const id of ["fNota", "fQueda", "fRoe", "fDiv", "fJusto", "fCons"]) $(id).value = ""; $("fVer").value = ""; for (const id of CHECKS) $(id).checked = false; render(); };
     reais = guardado.reais || {}; ibovReal = guardado.ibovReal ?? null; aba = guardado.aba || "compra";
     for (const id of [...CAMPOS, "busca"]) $(id).addEventListener("input", render);
     document.querySelectorAll(".abas button").forEach((b) => { b.classList.toggle("on", b.dataset.aba === aba); b.onclick = () => { aba = b.dataset.aba; document.querySelectorAll(".abas button").forEach((o) => o.classList.toggle("on", o === b)); render(); }; });
