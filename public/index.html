@@ -1,23 +1,462 @@
 <!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0E1116" />
-    <title>Intraday · B3</title>
-    <meta name="description" content="Candles intradiários da B3 — bases de 5 e 60 min, pregão ao vivo e motor de estratégias de day trade." />
-    <meta name="application-name" content="Intraday B3" />
-    <meta name="apple-mobile-web-app-title" content="Intraday" />
-    <link rel="icon" href="./favicon.ico" sizes="32x32" />
-    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
-    <link rel="manifest" href="./manifest.webmanifest" />
-    <style>html,body,#root{margin:0;padding:0;background:#0E1116}</style>
-    <script defer src="./app.js"></script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <a href="./termometro.html" title="Termômetro da abertura: maiores quedas entre as empresas saudáveis"
-       style="position:fixed;right:16px;bottom:16px;z-index:50;background:#1F6FEB;color:#fff;text-decoration:none;font:600 13px system-ui,sans-serif;padding:9px 14px;border-radius:20px;box-shadow:0 2px 10px rgba(0,0,0,.5)">🌡️ Termômetro</a>
-  </body>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0E1116" />
+<title>Termômetro B3</title>
+<meta name="description" content="Swing trade no pânico: maiores quedas entre empresas saudáveis, preço justo e distorção contra a tela." />
+<link rel="icon" href="./favicon.ico" sizes="32x32" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<style>
+:root{
+  --bg:#0E1116;--painel:#161B22;--borda:#2A313C;--texto:#E6EDF3;--fraco:#8B949E;
+  --verde:#3FB950;--vermelho:#F85149;--amarelo:#D29922;--azul:#58A6FF;--realce:#1F2630;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--texto);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1280px;margin:0 auto;padding:12px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:8px}
+h1{font-size:20px;margin:0}
+h2{font-size:16px;margin:0 0 4px}
+h3{font-size:14px;margin:12px 0 4px}
+a{color:var(--azul)}
+.fraco{color:var(--fraco)}
+.painel{background:var(--painel);border:1px solid var(--borda);border-radius:10px;padding:12px;margin:12px 0}
+.grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--fraco)}
+input,textarea,select{background:var(--bg);color:var(--texto);border:1px solid var(--borda);border-radius:6px;padding:7px 8px;font:inherit;width:100%}
+textarea{min-height:70px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+button{background:var(--realce);color:var(--texto);border:1px solid var(--borda);border-radius:6px;padding:7px 12px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--azul)}
+button.prim{background:#1F6FEB;border-color:#1F6FEB}
+.linha{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.kpi{background:var(--bg);border:1px solid var(--borda);border-radius:8px;padding:8px}
+.kpi b{display:block;font-size:18px}
+.rolagem{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:5px 7px;border-bottom:1px solid var(--borda);text-align:right;white-space:nowrap}
+th{color:var(--fraco);font-weight:500;cursor:pointer;user-select:none;position:sticky;top:0;background:var(--painel);z-index:1}
+td.e,th.e{text-align:left}
+td.nome{max-width:170px;overflow:hidden;text-overflow:ellipsis;color:var(--fraco)}
+td.motivo{white-space:normal;min-width:230px;text-align:left;color:var(--fraco);font-size:12px}
+tr:hover td{background:var(--realce)}
+.neg{color:var(--vermelho)}.pos{color:var(--verde)}.ama{color:var(--amarelo)}
+.tag{display:inline-block;padding:1px 6px;border-radius:10px;font-size:11px;border:1px solid var(--borda);margin-left:4px}
+.tag.real{border-color:var(--verde);color:var(--verde)}
+.tag.teo{border-color:var(--azul);color:var(--azul)}
+.tag.mod{color:var(--fraco)}
+.nota{display:inline-block;min-width:34px;padding:1px 6px;border-radius:6px;text-align:center;font-weight:600}
+details summary{cursor:pointer;color:var(--azul);margin-top:6px}
+.verd{font-weight:600}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:6px 0}
+dt{color:var(--texto)}
+code{background:var(--bg);padding:1px 4px;border-radius:4px}
+@media (max-width:600px){main{padding:8px 16px 40px}h1{font-size:18px}dl{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>🌡️ Termômetro B3 — swing no pânico</h1>
+  <span class="fraco" id="info">carregando a base…</span>
+</header>
+
+<section class="painel">
+  <h2>Cenário</h2>
+  <div class="fraco" style="font-size:12px">Sem preço de tela, a variação de cada papel é estimada: pânico × beta ao Ibovespa × índice + beta ao dólar × dólar + castigo de balanço frágil + prêmio político (estatais). <b>Buscar preço de tela</b> (Yahoo, 15 min de atraso) ou colar do Profit substitui a estimativa pelo preço real.</div>
+  <div class="grade" style="margin-top:10px">
+    <label>Ibovespa hoje (%)<input id="ibov" type="number" step="0.1" value="-15" /></label>
+    <label>Dólar hoje (%)<input id="usd" type="number" step="0.1" value="9" /></label>
+    <label>Amplificação do pânico (×)<input id="panico" type="number" step="0.1" value="1.5" /></label>
+    <label>Prêmio político estatais (p.p.)<input id="premio" type="number" step="0.5" value="-6" /></label>
+    <label>DI 1 ano antes (% a.a.)<input id="diBase" type="number" step="0.05" value="12.8" /></label>
+    <label>DI 1 ano agora (% a.a.)<input id="diNovo" type="number" step="0.05" value="15.4" /></label>
+  </div>
+  <h3>Preço justo</h3>
+  <div class="grade">
+    <label>Juro longo — DI jan/35 (% a.a.)<input id="juroLongo" type="number" step="0.1" value="15.4" /></label>
+    <label>Prêmio de risco da ação (p.p.)<input id="premioRisco" type="number" step="0.5" value="4.5" /></label>
+    <label>Crescimento perpétuo g (% a.a.)<input id="g" type="number" step="0.5" value="5" /></label>
+  </div>
+  <h3>Filtros da lista de compra</h3>
+  <div class="grade">
+    <label>Nota mínima "saudável"<input id="notaMin" type="number" step="5" value="70" /></label>
+    <label>Queda mínima hoje (%)<input id="quedaMin" type="number" step="1" value="15" /></label>
+    <label>Volume mínimo (R$ MM/dia)<input id="volMin" type="number" step="5" value="30" /></label>
+    <label>Estatais<select id="estatais"><option value="nao">fora (risco político)</option><option value="sim">entram</option></select></label>
+    <label>Ordenar por<select id="ordem"><option value="oport">oportunidade (excesso × nota)</option><option value="dist">maior desconto p/ o justo</option><option value="queda">maior queda</option><option value="excesso">maior excesso vs IBOV</option></select></label>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <details>
+    <summary>colar preços do Profit</summary>
+    <div class="fraco" style="font-size:12px;margin:6px 0">Um por linha: <code>PETR4 31,20</code> (preço) ou <code>PETR4 -12,5%</code> (variação). Separadores livres.</div>
+    <textarea id="teoricos" placeholder="VALE3 52,10&#10;ITUB4 -11,2%"></textarea>
+  </details>
+  <div class="linha">
+    <button class="prim" id="btReal">buscar preço de tela agora</button>
+    <button id="btLimpar">limpar preços de tela</button>
+    <span class="fraco" id="statusReal"></span>
+  </div>
+</section>
+
+<section class="painel">
+  <h2>🟢 Candidatas ao swing — saudáveis que mais caíram</h2>
+  <div class="fraco" style="font-size:12px">Nota ≥ mínima, lucro positivo (choque do DI descontado), queda ≥ mínima, líquidas. <b>Excesso</b> = queda além do que o beta ao Ibovespa explica (na estimativa é só o modelo; com preço de tela é o excesso real). <b>Racionalidade</b> diz se a queda tem motivo no balanço ou é exagero. <b>Distorção</b> = preço de tela contra o preço justo do modelo (negativo = desconto).</div>
+  <div class="linha"><button id="btCopiar">copiar tickers</button><span class="fraco" id="copiado"></span></div>
+  <div class="rolagem"><table id="tCompra"></table></div>
+</section>
+
+<section class="painel">
+  <h2>⚠️ Armadilhas — caem muito, mas o balanço não aguenta o DI</h2>
+  <div class="fraco" style="font-size:12px">Barato por um motivo: dívida que o juro novo encarece, prejuízo, caixa curto, lucro inconstante.</div>
+  <div class="rolagem"><table id="tArmadilha"></table></div>
+</section>
+
+<section class="painel">
+  <h2>Todos os papéis</h2>
+  <div class="linha">
+    <input id="busca" placeholder="filtrar (ticker ou nome)" style="max-width:260px" />
+    <span class="fraco" style="font-size:12px">clique no cabeçalho para ordenar</span>
+  </div>
+  <div class="rolagem" style="max-height:75vh;overflow:auto"><table id="tTodos"></table></div>
+</section>
+
+<section class="painel fraco" style="font-size:12px">
+  <h2 style="color:var(--texto)">Preço justo — metodologia</h2>
+  <p><b>Modelo principal: lucro residual sobre o patrimônio (Gordon aplicado ao P/VP).</b>
+  Uma empresa vale o patrimônio mais o que ela ganha acima do custo do capital, para sempre:</p>
+  <p style="text-align:center"><code>Preço justo = VPA × (ROE<sub>n</sub> − g) / (Ke − g)</code></p>
+  <dl>
+    <dt>VPA</dt><dd>patrimônio líquido ÷ ações em circulação (último balanço na CVM; units multiplicadas pelas ações que as compõem).</dd>
+    <dt>ROE<sub>n</sub></dt><dd>ROE <i>normalizado</i>: mediana do lucro dos 3 últimos exercícios fechados e dos últimos 12 meses, dividida pelo patrimônio atual. Evita pagar por um ano excepcional ou punir um ano ruim.</dd>
+    <dt>Ke</dt><dd>custo do capital próprio = juro longo (DI jan/2035, 15,4% hoje; era 12,7% na sexta) + prêmio de risco da ação. É <b>o</b> parâmetro: cada ponto de juro muda tudo. Mexa nele.</dd>
+    <dt>g</dt><dd>crescimento nominal perpétuo (inflação ~4% + 1% real). Se ROE<sub>n</sub> ≤ g a empresa não cria valor e o modelo não dá preço.</dd>
+  </dl>
+  <p><b>Conferências:</b> <i>justo pelo lucro</i> = LPA<sub>n</sub> ÷ (Ke − g), o mesmo custo de capital aplicado ao lucro em vez do patrimônio (P/L justo = 1/(Ke − g)); <i>Graham</i> = √(22,5 × LPA<sub>n</sub> × VPA), a fórmula clássica, que ignora o juro do país e por isso sai mais alta; e o <i>consenso</i> de bancos e casas (<code>dados/alvos.json</code>, levantado em 26/10/2026 antes do pregão — as casas vão cortar; edite quando saírem revisões).</p>
+  <p><b>Por que o modelo sai abaixo do consenso:</b> os bancos usam Ke de 13–15% (juro real + prêmio, com visão de 12 meses à frente); com o DI longo a 15,4% o Ke aqui passa de 19%. É intencional: o preço justo tem de refletir o juro que existe hoje. Se você acha que o juro volta, ponha 12,7 no juro longo e veja o consenso reaparecer. Bancos: sem cálculo (plano de contas da CVM não traz patrimônio comparável) — só o consenso.</p>
+  <p><b>Lucro constante</b> = quantos dos últimos 5 exercícios tiveram lucro, e a oscilação do lucro anual (desvio ÷ média). <b>Nota de saúde (0–100)</b>: começa em 100 e desconta lucro 12m ≤ 0 (−40); dívida líquida/EBIT 1–2× (−10), 2–3× (−25), &gt;3× ou EBIT negativo (−40); <b>choque do DI</b> = dívida líquida × alta do DI × (1 − 34% IR) contra o lucro 12m (desconta metade do % do lucro consumido, até −30); dívida de curto prazo &gt; caixa (−15); dívida líquida/PL &gt; 1,5× (−10); ROE &lt; 5% (−10) ou &gt; 15% (+5); menos de 4 anos com lucro nos últimos 5 (−15); margem líquida &lt; 3% (−5); lucro do trimestre caindo &gt; 30% (−5); estatal (−15); patrimônio negativo (−30). Bancos e seguradoras: nota manual em <code>termometro.py</code>.</p>
+  <p>Fontes: balanços CVM (ITR/DFP) via base do projeto overnight; cotações COTAHIST (B3) e Yahoo; betas de 250 pregões contra IBOV e dólar. Não é recomendação de investimento.</p>
+</section>
+</main>
+
+<script>
+(() => {
+  const REPO = new URLSearchParams(location.search).get("repo") ||
+    (() => { try { return localStorage.getItem("intra1:repo"); } catch { return null; } })() || "thcruz92-eng/intraday-b3";
+  const FONTES = [
+    `https://raw.githubusercontent.com/${REPO}/main/dados/`,
+    `https://cdn.jsdelivr.net/gh/${REPO}@main/dados/`,
+  ];
+  const CHAVE = "termometro.v3";
+  const CAMPOS = ["ibov", "usd", "panico", "premio", "diBase", "diNovo", "juroLongo", "premioRisco", "g", "notaMin", "quedaMin", "volMin", "estatais", "ordem", "teoricos"];
+  const $ = (id) => document.getElementById(id);
+
+  let base = null, volume = {}, reais = {}, ibovReal = null, ordemTodos = { col: "oport", dir: 1 };
+
+  const guardado = (() => { try { return JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch { return {}; } })();
+  const salvar = () => {
+    const s = {};
+    for (const id of CAMPOS) s[id] = $(id).value;
+    s.reais = reais; s.ibovReal = ibovReal;
+    try { localStorage.setItem(CHAVE, JSON.stringify(s)); } catch {}
+  };
+
+  const num = (s) => {
+    let t = String(s ?? "").trim();
+    if (t.includes(",")) t = t.replace(/\./g, "").replace(",", ".");
+    const v = parseFloat(t);
+    return isFinite(v) ? v : null;
+  };
+  const pct = (x, d = 1) => x == null || !isFinite(x) ? "—" : `${x > 0 ? "+" : ""}${(x * 100).toFixed(d).replace(".", ",")}%`;
+  const f = (x, d = 1) => x == null || !isFinite(x) ? "—" : x.toFixed(d).replace(".", ",");
+  const brl = (x) => x == null || !isFinite(x) ? "—" : x.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const cls = (x) => x == null ? "" : x < 0 ? "neg" : x > 0 ? "pos" : "";
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const mediana = (a) => { const s = a.filter((x) => x != null && isFinite(x)).sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : null; };
+
+  async function baixar(arq) {
+    let erro;
+    for (const raiz of FONTES) {
+      try {
+        const r = await fetch(raiz + arq, { cache: "no-cache" });
+        if (r.ok) return await r.json();
+        erro = new Error(`HTTP ${r.status}`);
+      } catch (e) { erro = e; }
+    }
+    throw erro;
+  }
+
+  function cenario() {
+    const v = (id, d) => num($(id).value) ?? d;
+    const diBase = v("diBase", 12.8), diNovo = v("diNovo", 15.4);
+    const ke = (v("juroLongo", 15.4) + v("premioRisco", 4.5)) / 100;
+    return {
+      ibov: ibovReal ?? v("ibov", 0) / 100, usd: v("usd", 0) / 100,
+      panico: v("panico", 1), premio: v("premio", 0) / 100,
+      diBase, diNovo, diPP: diNovo - diBase,
+      ke, g: v("g", 5) / 100,
+      notaMin: v("notaMin", 70), quedaMin: v("quedaMin", 0) / 100, volMin: v("volMin", 0) * 1e6,
+      estatais: $("estatais").value === "sim",
+    };
+  }
+
+  function teoricos() {
+    const out = {};
+    for (const linha of $("teoricos").value.split(/\n/)) {
+      const m = linha.toUpperCase().match(/\b([A-Z]{4}\d{1,2})\b[^\d+\-]*([+\-]?\d[\d.,]*)\s*(%?)/);
+      if (!m) continue;
+      const v = num(m[2]);
+      if (v == null) continue;
+      out[m[1]] = m[3] ? { varPct: v / 100 } : { preco: v };
+    }
+    return out;
+  }
+
+  /** por ação (ou por unit) e indicadores de qualidade */
+  function fundamentos(p) {
+    const u = p.porUnit || 1;
+    const ok = p.acoes > 0 && !p.acoesSuspeito;
+    const vpa = ok && p.pl != null ? p.pl / p.acoes * u : null;
+    const lpa = ok && p.lucro12 != null ? p.lucro12 / p.acoes * u : null;
+    const anos = (p.anos || []).slice(-5);
+    const lucros = anos.map((a) => a[1]);
+    const comLucro = lucros.filter((x) => x > 0).length;
+    const med = lucros.length ? lucros.reduce((a, b) => a + b, 0) / lucros.length : null;
+    const cv = med > 0 && lucros.length > 1 ? Math.sqrt(lucros.reduce((s, x) => s + (x - med) ** 2, 0) / lucros.length) / med : null;
+    // lucro normalizado: mediana dos 3 últimos exercícios + 12m
+    const lucroN = mediana([...(p.anos || []).slice(-3).map((a) => a[1]), p.lucro12]);
+    const roe = p.pl > 0 && p.lucro12 != null ? p.lucro12 / p.pl : null;
+    const roeN = p.pl > 0 && lucroN != null ? lucroN / p.pl : null;
+    const lpaN = ok && lucroN != null ? lucroN / p.acoes * u : null;
+    const margem = p.receita12 > 0 && p.lucro12 != null ? p.lucro12 / p.receita12 : null;
+    const dl = (p.divCP || 0) + (p.divLP || 0) - (p.caixa || 0);
+    return { vpa, lpa, lpaN, roe, roeN, margem, dl, anos: lucros.length, comLucro, cv, ok };
+  }
+
+  function justo(fu, c) {
+    if (!fu.ok || fu.vpa == null || fu.vpa <= 0) return {};
+    const out = {};
+    if (fu.roeN != null && fu.roeN > c.g && c.ke > c.g) out.ri = fu.vpa * (fu.roeN - c.g) / (c.ke - c.g);
+    if (fu.lpaN > 0 && c.ke > c.g) out.lucro = fu.lpaN / (c.ke - c.g);
+    if (fu.lpaN > 0) out.graham = Math.sqrt(22.5 * fu.lpaN * fu.vpa);
+    out.modelo = out.ri ?? null;
+    return out;
+  }
+
+  function saude(p, fu, c) {
+    const motivos = [];
+    if (p.financeira) {
+      if (p.estatal) motivos.push(`estatal (${p.estatal})`);
+      motivos.push(p.financeira[1]);
+      return { nota: p.financeira[0], motivos, manual: true };
+    }
+    if (p.semNota) return { nota: null, motivos: [p.semNota] };
+    if (p.ebit12 == null && p.lucro12 == null) return { nota: null, motivos: ["sem balanço na CVM"] };
+    let n = 100;
+    const dl = fu.dl;
+    const dlEbit = p.ebit12 > 0 ? dl / p.ebit12 : null;
+    if (!(p.lucro12 > 0)) { n -= 40; motivos.push("prejuízo em 12 meses"); }
+    if (dl > 0) {
+      if (!(p.ebit12 > 0)) { n -= 40; motivos.push("dívida com EBIT negativo"); }
+      else if (dlEbit > 3) { n -= 40; motivos.push(`dívida alta (${f(dlEbit)}× EBIT)`); }
+      else if (dlEbit > 2) { n -= 25; motivos.push(`dívida ${f(dlEbit)}× EBIT`); }
+      else if (dlEbit > 1) { n -= 10; }
+    } else motivos.push("caixa líquido");
+    let impactoDI = null;
+    if (p.lucro12 && dl) {
+      impactoDI = -(dl * (c.diPP / 100) * 0.66) / Math.abs(p.lucro12);
+      if (impactoDI < 0) {
+        const d = Math.min(30, -impactoDI * 100 / 2);
+        n -= d;
+        if (d >= 5) motivos.push(`DI +${f(c.diPP, 2)} p.p. come ${f(-impactoDI * 100, 0)}% do lucro`);
+      }
+    }
+    if ((p.divCP || 0) > (p.caixa || 0) && p.divCP > 0) { n -= 15; motivos.push("dívida de curto prazo > caixa"); }
+    if (p.pl > 0 && dl / p.pl > 1.5) { n -= 10; motivos.push(`dív. líq./PL ${f(dl / p.pl)}×`); }
+    if (fu.roe != null && fu.roe < 0.05) n -= 10;
+    else if (fu.roe != null && fu.roe > 0.15) n += 5;
+    if (fu.anos >= 3 && fu.comLucro < Math.min(4, fu.anos)) { n -= 15; motivos.push(`lucro em só ${fu.comLucro} de ${fu.anos} anos`); }
+    if (fu.margem != null && fu.margem < 0.03 && p.lucro12 > 0) { n -= 5; motivos.push(`margem líquida ${pct(fu.margem)}`); }
+    if (p.lucroTriAA != null && p.lucroTriAA < -0.3) { n -= 5; motivos.push(`lucro do tri ${pct(p.lucroTriAA, 0)} a/a`); }
+    if (p.estatal) { n -= 15; motivos.push(`estatal (${p.estatal})`); }
+    if (p.pl != null && p.pl <= 0) { n -= 30; motivos.push("patrimônio negativo"); }
+    if (p.acoesSuspeito) motivos.push(p.acoesSuspeito);
+    return { nota: Math.max(0, Math.min(100, Math.round(n))), motivos, dlEbit, dl, impactoDI };
+  }
+
+  function racional(x, c) {
+    const e = x.excesso;
+    if (x.fonte === "mod") return e <= -0.03 ? `estimativa: ${f(-e * 100, 0)} p.p. além do beta — busque o preço de tela` : "estimativa — busque o preço de tela";
+    if (e == null) return "—";
+    if (e > -0.03) return "em linha com o mercado (beta)";
+    const pp = f(-e * 100, 0);
+    if (x.p.estatal) return `${pp} p.p. além do beta: risco político (${x.p.estatal})`;
+    if (x.s.nota != null && x.s.nota < c.notaMin) return `${pp} p.p. além do beta: balanço frágil justifica (${x.s.motivos[0] || "nota baixa"})`;
+    if (x.s.impactoDI != null && x.s.impactoDI < -0.15) return `${pp} p.p. além do beta: parte é o DI no lucro (${pct(x.s.impactoDI, 0)})`;
+    if (x.s.nota == null) return `${pp} p.p. além do beta — sem balanço para julgar`;
+    return `EXAGERO de ${pp} p.p.: balanço não justifica → candidata a recuperar`;
+  }
+
+  function linhas() {
+    const c = cenario(), teo = teoricos();
+    const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+    return Object.entries(base.papeis).map(([t, p]) => {
+      const fu = fundamentos(p);
+      const s = saude(p, fu, c);
+      // referência: fechamento anterior ao pregão de hoje
+      const ref = p.dataFech === hoje && p.fechAnt ? p.fechAnt : p.fech;
+      const beta = p.beta ?? 1, betaUsd = p.betaUsd ?? 0;
+      const explicado = c.panico * beta * c.ibov + betaUsd * c.usd;
+      let fragil = 0;
+      if (!s.manual && s.nota != null) {
+        if (!(p.lucro12 > 0)) fragil -= 0.08;
+        if (s.impactoDI != null && s.impactoDI < 0) fragil -= Math.min(0.15, -s.impactoDI * 0.25);
+        if (s.dl > 0 && (!(p.ebit12 > 0) || s.dlEbit > 3)) fragil -= 0.07;
+      }
+      let modelo = Math.max(-0.6, Math.min(0.2, explicado + (p.estatal ? c.premio : 0) + fragil));
+      let r = modelo, fonte = "mod";
+      if (p.dataFech === hoje && p.varDia != null) { r = p.varDia; fonte = "real"; }
+      if (teo[t]) { r = teo[t].varPct ?? teo[t].preco / ref - 1; fonte = "teo"; }
+      if (reais[t] != null) { r = reais[t] / ref - 1; fonte = "real"; }
+      // excesso = o que a queda tem além do beta ao Ibovespa (na estimativa: pânico, fragilidade, política)
+      const excesso = r - beta * c.ibov;
+      const preco = ref * (1 + r);
+      const j = justo(fu, c);
+      const dist = j.modelo ? preco / j.modelo - 1 : null;
+      const distCons = p.alvo?.preco ? preco / p.alvo.preco - 1 : null;
+      const pl = fu.lpa > 0 ? preco / fu.lpa : null, pvp = fu.vpa > 0 ? preco / fu.vpa : null;
+      return { t, p, fu, s, r, fonte, excesso, preco, ref, j, dist, distCons, pl, pvp, vol: volume[t] };
+    });
+  }
+
+  const corNota = (n) => n == null ? "background:#30363D" : n >= 80 ? "background:#1B4721;color:#7EE787" : n >= 70 ? "background:#2D3B1A;color:#B4E07A" : n >= 50 ? "background:#3D2F0A;color:#E3B341" : "background:#4A1A1A;color:#FF9C95";
+  const tagFonte = (x) => x === "real" ? '<span class="tag real">tela</span>' : x === "teo" ? '<span class="tag teo">Profit</span>' : '<span class="tag mod">estim.</span>';
+  const consist = (fu) => fu.anos ? `${fu.comLucro}/${fu.anos}${fu.cv != null ? ` ±${f(fu.cv * 100, 0)}%` : ""}` : "—";
+  const celJusto = (x) => x.j.modelo ? `<b>${brl(x.j.modelo)}</b>` : x.fu.ok && x.fu.vpa > 0 ? '<span class="fraco" title="ROE normalizado abaixo do crescimento">n/d</span>' : '<span class="fraco">—</span>';
+  const celCons = (x) => x.p.alvo ? `<span title="${esc(x.p.alvo.fonte)} · ${esc(x.p.alvo.data)}">${brl(x.p.alvo.preco)}</span>` : '<span class="fraco">—</span>';
+
+  const CABEC = [
+    ["papel", "papel", 1], ["nome", "empresa", 1], ["nota", "nota"], ["var", "hoje"], ["excesso", "excesso vs IBOV"], ["racional", "racionalidade da queda", 1],
+    ["preco", "tela"], ["justo", "justo (modelo)"], ["dist", "distorção"], ["cons", "consenso"], ["distCons", "vs consenso"],
+    ["pl", "P/L"], ["pvp", "P/VP"], ["roe", "ROE"], ["margem", "margem líq."], ["dlebit", "dív.líq/EBIT"], ["di", "DI no lucro"], ["const", "lucro constante"], ["vol", "vol. R$ MM"], ["motivo", "observações", 1],
+  ];
+  const linhaHtml = (x, i, destaque) => `<tr${destaque ? ' style="background:#14261A"' : ""}>${i != null ? `<td>${i}</td>` : ""}<td class="e"><b>${x.t}</b></td><td class="e nome" title="${esc(x.p.nome)}">${esc(x.p.nome || "")}</td>
+    <td><span class="nota" style="${corNota(x.s.nota)}">${x.s.nota ?? "—"}</span></td>
+    <td class="${cls(x.r)}">${pct(x.r)} ${tagFonte(x.fonte)}</td><td class="${cls(x.excesso)}">${pct(x.excesso)}</td><td class="motivo">${esc(racional(x, cenario()))}</td>
+    <td>${brl(x.preco)}</td><td>${celJusto(x)}</td><td class="${cls(x.dist)}"><b>${pct(x.dist, 0)}</b></td><td>${celCons(x)}</td><td class="${cls(x.distCons)}">${pct(x.distCons, 0)}</td>
+    <td>${f(x.pl)}</td><td>${f(x.pvp, 2)}</td><td>${x.fu.roe == null ? "—" : pct(x.fu.roe, 0)}</td><td>${x.fu.margem == null ? "—" : pct(x.fu.margem, 0)}</td>
+    <td>${x.s.manual ? "banco/seg." : x.s.dl <= 0 ? '<span class="pos">caixa líq.</span>' : f(x.s.dlEbit)}</td>
+    <td class="${cls(x.s.impactoDI)}">${x.s.impactoDI == null ? "—" : pct(x.s.impactoDI, 0)}</td><td>${consist(x.fu)}</td><td>${x.vol == null ? "—" : f(x.vol / 1e6, 0)}</td>
+    <td class="motivo">${esc(x.s.motivos.join(" · "))}${x.j.lucro ? ` · justo p/ lucro ${brl(x.j.lucro)}` : ""}${x.j.graham ? ` · Graham ${brl(x.j.graham)}` : ""}</td></tr>`;
+
+  function render() {
+    if (!base) return;
+    salvar();
+    const c = cenario(), L = linhas();
+    const comBal = L.filter((x) => x.s.nota != null);
+    const saud = comBal.filter((x) => x.s.nota >= c.notaMin);
+    const nReal = L.filter((x) => x.fonte !== "mod").length;
+    $("kpis").innerHTML = [
+      ["Ibovespa hoje", pct(c.ibov), ibovReal != null ? "tela (Yahoo)" : "digitado"],
+      ["Ke do modelo", pct(c.ke), `P/L justo ${f(1 / (c.ke - c.g))}× · P/VP justo c/ ROE 20%: ${f((0.2 - c.g) / (c.ke - c.g), 2)}×`],
+      ["queda mediana", pct(mediana(L.map((x) => x.r))), nReal ? `${nReal} com preço real` : "estimada"],
+      ["saudáveis", `${saud.length} de ${comBal.length}`, `nota ≥ ${c.notaMin}`],
+      ["distorção mediana", pct(mediana(L.map((x) => x.dist)), 0), "tela ÷ justo − 1"],
+      ["abaixo do justo", `${L.filter((x) => x.dist != null && x.dist < 0).length}`, `de ${L.filter((x) => x.dist != null).length} com preço justo`],
+    ].map(([a, b, d]) => `<div class="kpi"><span class="fraco">${a}</span><b>${b}</b><span class="fraco" style="font-size:12px">${d}</span></div>`).join("");
+
+    const chave = {
+      oport: (x) => (x.excesso ?? x.r) * (x.s.nota / 100), dist: (x) => x.dist ?? 9, queda: (x) => x.r, excesso: (x) => x.excesso ?? x.r,
+    };
+    const compra = saud.filter((x) => x.r <= -c.quedaMin && (x.s.manual || x.p.lucro12 > 0) && (c.estatais || !x.p.estatal) && !(x.vol != null && x.vol < c.volMin))
+      .sort((a, b) => chave[$("ordem").value](a) - chave[$("ordem").value](b));
+    const cab = (extra) => `<tr>${extra || ""}${CABEC.map(([id, txt, e]) => `<th class="${e ? "e" : ""}">${txt}</th>`).join("")}</tr>`;
+    $("tCompra").innerHTML = cab("<th>#</th>") + (compra.slice(0, 40).map((x, i) => linhaHtml(x, i + 1, x.dist != null && x.dist < 0)).join("") ||
+      `<tr><td colspan="21" class="e fraco">nenhum papel saudável caindo ${pct(-c.quedaMin, 0)} ou mais com esses filtros</td></tr>`);
+    $("btCopiar").onclick = () => {
+      const txt = compra.slice(0, 40).map((x) => x.t).join("\n");
+      navigator.clipboard?.writeText(txt).then(() => $("copiado").textContent = `${Math.min(40, compra.length)} tickers copiados`, () => $("copiado").textContent = txt.replace(/\n/g, " "));
+    };
+
+    const armad = L.filter((x) => x.r <= -c.quedaMin && x.s.nota != null && x.s.nota < c.notaMin).sort((a, b) => a.r - b.r).slice(0, 30);
+    $("tArmadilha").innerHTML = cab() + (armad.map((x) => linhaHtml(x, null, false)).join("") || `<tr><td colspan="20" class="e fraco">nenhuma</td></tr>`);
+
+    const q = $("busca").value.trim().toUpperCase();
+    const cols = {
+      papel: (x) => x.t, nome: (x) => x.p.nome || "", nota: (x) => x.s.nota ?? -1, var: (x) => x.r, excesso: (x) => x.excesso ?? x.r, racional: (x) => x.excesso ?? 0,
+      preco: (x) => x.preco, justo: (x) => x.j.modelo ?? -1, dist: (x) => x.dist ?? 9, cons: (x) => x.p.alvo?.preco ?? -1, distCons: (x) => x.distCons ?? 9,
+      pl: (x) => x.pl ?? 999, pvp: (x) => x.pvp ?? 999, roe: (x) => x.fu.roe ?? -9, margem: (x) => x.fu.margem ?? -9,
+      dlebit: (x) => x.s.manual ? -99 : x.s.dl <= 0 ? -1 : x.s.dlEbit ?? 99, di: (x) => x.s.impactoDI ?? 0, const: (x) => x.fu.comLucro - (x.fu.cv ?? 0), vol: (x) => x.vol ?? 0, motivo: (x) => x.s.motivos.length,
+      oport: chave.oport,
+    };
+    const desc = new Set(["nota", "vol", "roe", "margem", "const", "cons", "justo"]);
+    const k = cols[ordemTodos.col] || cols.oport;
+    const todos = L.filter((x) => !q || x.t.includes(q) || (x.p.nome || "").toUpperCase().includes(q))
+      .sort((a, b) => { const va = k(a), vb = k(b); return (va < vb ? -1 : va > vb ? 1 : 0) * (desc.has(ordemTodos.col) ? -ordemTodos.dir : ordemTodos.dir); });
+    $("tTodos").innerHTML = `<tr>${CABEC.map(([id, txt, e]) => `<th data-col="${id}" class="${e ? "e" : ""}">${txt}${ordemTodos.col === id ? (ordemTodos.dir > 0 ? " ▾" : " ▴") : ""}</th>`).join("")}</tr>` +
+      todos.map((x) => linhaHtml(x, null, false)).join("");
+    $("tTodos").querySelectorAll("th[data-col]").forEach((el) => el.onclick = () => {
+      const col = el.dataset.col;
+      ordemTodos = { col, dir: ordemTodos.col === col ? -ordemTodos.dir : 1 };
+      render();
+    });
+  }
+
+  async function buscarReal() {
+    const lista = [...Object.keys(base.papeis), "IBOV"];
+    let ok = 0, falhas = 0;
+    $("statusReal").textContent = "consultando…";
+    for (let i = 0; i < lista.length; i += 50) {
+      const lote = lista.slice(i, i + 50);
+      try {
+        const r = await fetch(`/.netlify/functions/aovivo?t=${lote.join(",")}`);
+        const js = await r.json();
+        for (const [t, d] of Object.entries(js.dados || {})) {
+          if (!(d.preco > 0)) continue;
+          if (t === "IBOV") {
+            const m = base.mercado?.ibov;
+            const hoje = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+            const ref = m?.data === hoje ? m.fech / (1 + (m.var || 0)) : m?.fech;
+            if (ref) ibovReal = d.preco / ref - 1;
+          } else { reais[t] = d.preco; ok++; }
+        }
+        falhas += (js.ausentes || []).length;
+      } catch { falhas += lote.length; }
+      $("statusReal").textContent = `consultando… ${Math.min(i + 50, lista.length)}/${lista.length}`;
+    }
+    $("statusReal").textContent = ok ? `${ok} preços de tela (Yahoo, 15 min de atraso)${falhas ? ` · ${falhas} sem resposta` : ""} · ${new Date().toLocaleTimeString("pt-BR")}` : "sem resposta do Yahoo — abra pelo site no Netlify, não pelo arquivo";
+    render();
+  }
+
+  async function iniciar() {
+    for (const [id, v] of Object.entries(guardado)) if ($(id) && typeof v === "string") $(id).value = v;
+    reais = guardado.reais || {}; ibovReal = guardado.ibovReal ?? null;
+    for (const id of [...CAMPOS, "busca"]) $(id).addEventListener("input", render);
+    $("btReal").onclick = buscarReal;
+    $("btLimpar").onclick = () => { reais = {}; ibovReal = null; $("statusReal").textContent = ""; render(); };
+    try {
+      base = await baixar("termometro.json");
+      try {
+        const ind = await baixar("indice.json");
+        const dias = {};
+        for (const m of ind.diario.meses.slice(-2)) Object.assign(dias, (await baixar(m.arquivo)).dias);
+        for (const d of Object.keys(dias).sort().slice(-20)) for (const [t, v] of Object.entries(dias[d])) (volume[t] ||= []).push(v[4] * 1000);
+        for (const t in volume) volume[t] = volume[t].reduce((a, b) => a + b, 0) / volume[t].length;
+      } catch { volume = {}; }
+      const ps = Object.values(base.papeis);
+      const m = base.mercado?.ibov;
+      $("info").textContent = `${ps.length} papéis · balanços até ${ps.map((p) => p.ref).filter(Boolean).sort().pop()} · último pregão na base ${ps[0]?.dataFech?.split("-").reverse().join("/")}${m?.var != null ? ` (IBOV ${pct(m.var)})` : ""} · ${Object.values(base.papeis).filter((p) => p.alvo).length} com consenso`;
+      render();
+    } catch (e) {
+      $("info").innerHTML = `<span class="neg">não consegui baixar dados/termometro.json de ${esc(REPO)} (${esc(e.message)}). Rode a coleta ou o termometro.py.</span>`;
+    }
+  }
+  iniciar();
+})();
+</script>
+</body>
 </html>
