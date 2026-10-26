@@ -1,5 +1,15 @@
 # Termômetro B3 — swing trade no pânico
 
+**Versão atual: v2.0 (26/10/2026)** — aparece ao lado do título na página.
+
+| Versão | Data | O que mudou |
+|---|---|---|
+| v2.0 | 26/10/2026 | lista única com abas, veredito por papel, resumo em texto, detalhes ao clicar, cartões no celular, preço justo como faixa patrimônio–lucro |
+| v1.1 | 26/10/2026 | o termômetro vira o app: preço justo, consenso, lucro constante, racionalidade da queda |
+| v1.0 | 26/10/2026 | termômetro da abertura dentro do app intraday |
+
+Ao mudar o app, atualize a etiqueta em `public/index.html` (ao lado do `<h1>`) e esta tabela.
+
 Página única (`public/index.html`, publicada no Netlify) que responde três perguntas para cada
 papel líquido da B3:
 
