@@ -12,8 +12,11 @@ os dados moram no GitHub e um robô do GitHub Actions coleta tudo sozinho.
 - **Nota de saúde 0–100** de cada empresa pelo último balanço na CVM: lucro, dívida líquida/EBIT,
   dívida de curto prazo contra o caixa, ROE e o **choque do DI** (dívida líquida × alta do DI contra o
   lucro). Bancos e seguradoras com nota manual (`termometro.py`).
-- **Compra**: as maiores quedas entre as saudáveis (sem estatais, por padrão), com o **excesso** de
-  queda além do beta. **Venda**: a lista editável da tese "Flávio vence", com veredito por papel.
+- **Compra ao som dos canhões**: dia de pânico (papéis caindo até 50%) é para comprar, não vender.
+  Entram só saudáveis, líquidas e caindo além da queda mínima, priorizadas pelo excesso de queda × nota;
+  os N primeiros viram a carteira, com entrada em **3 parcelas** (leilão, −10% e −20% da abertura),
+  sem stop curto, e alvo em metade do buraco fechado. **Armadilhas**: as que caem muito mas têm
+  balanço que o DI alto machuca — não aumentar.
 - A base sai do `termometro.py` (balanços da base do overnight + COTAHIST + IBOV/dólar de 60 min),
   gravada em `dados/termometro.json`; o robô atualiza em toda coleta.
 

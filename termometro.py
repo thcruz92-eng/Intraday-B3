@@ -23,7 +23,7 @@ saúde deles vem de uma classificação manual (CLASSIF_MANUAL) — revise.
 Uso:  python termometro.py                      (baixa a base da CVM do GitHub)
       python termometro.py --cvm caminho/fundamentos.json
 """
-import argparse, glob, json, os, statistics, urllib.request
+import argparse, glob, json, os, re, statistics, urllib.request
 from datetime import datetime, timezone, timedelta
 
 CVM_URL = "https://raw.githubusercontent.com/thcruz92-eng/leilao-overnight/main/dados/cvm/fundamentos.json"
@@ -75,6 +75,9 @@ CLASSIF_MANUAL = {
     "B3SA3": [80, "caixa líquido; volume sobe em estresse"],
     "BRBI11": [60, "banco médio"],
 }
+
+# bancos/seguradoras fora de CLASSIF_MANUAL: sem nota (plano de contas diferente)
+FIN = re.compile(r"\bBCO\b|BANCO|SEGUR|RESSEGUR|FINANC")
 
 # nome para os que a CVM não liga ao ticker (units de banco)
 NOMES_MANUAIS = {"BPAC11": "BANCO BTG PACTUAL S.A.", "SANB11": "BANCO SANTANDER (BRASIL) S.A.",
@@ -284,6 +287,8 @@ def main():
         if t in CLASSIF_MANUAL:
             reg["financeira"] = CLASSIF_MANUAL[t]
             reg.setdefault("nome", NOMES_MANUAIS.get(t))
+        elif FIN.search(reg.get("nome") or "") and "CORRETORA" not in (reg.get("nome") or ""):
+            reg["semNota"] = "banco/seguradora fora da classificação manual"
         if eh_fundo(t, reg):
             continue
         papeis[t] = reg

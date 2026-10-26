@@ -62,16 +62,22 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
 
 <section class="painel">
   <h2>Cenário de hoje</h2>
-  <div class="fraco" style="font-size:12px">Abertura de cada papel = beta ao Ibovespa × variação do índice + beta ao dólar × variação do dólar + prêmio político (estatais). Teórico colado do Profit ou abertura real substituem a estimativa.</div>
+  <div class="fraco" style="font-size:12px">Abertura estimada = pânico × beta ao Ibovespa × variação do índice + beta ao dólar × variação do dólar + prêmio político (estatais) + castigo de balanço frágil (dívida que o DI encarece, prejuízo). Em dia de pânico papel frágil cai 40–50%. Teórico colado do Profit ou abertura real substituem a estimativa.</div>
   <div class="grade" style="margin-top:10px">
     <label>Ibovespa na abertura (%)<input id="ibov" type="number" step="0.1" value="-14" /></label>
     <label>Dólar (%)<input id="usd" type="number" step="0.1" value="9" /></label>
     <label>DI antes do choque (% a.a.)<input id="diBase" type="number" step="0.05" value="12.8" /></label>
     <label>Alta do DI (% sobre a taxa)<input id="diAlta" type="number" step="1" value="20" /></label>
+    <label>Amplificação do pânico (×)<input id="panico" type="number" step="0.1" value="1.5" /></label>
     <label>Prêmio político estatais (p.p.)<input id="premio" type="number" step="0.5" value="-6" /></label>
     <label>Nota mínima "saudável"<input id="notaMin" type="number" step="5" value="70" /></label>
     <label>Estatais na lista de compra<select id="estatais"><option value="nao">não (risco político)</option><option value="sim">sim</option></select></label>
-    <label>Volume mínimo (R$ MM/dia)<input id="volMin" type="number" step="5" value="10" /></label>
+    <label>Volume mínimo (R$ MM/dia)<input id="volMin" type="number" step="5" value="30" /></label>
+    <label>Queda mínima p/ comprar (%)<input id="quedaMin" type="number" step="1" value="15" /></label>
+    <label>Capital total (R$)<input id="capital" type="number" step="1000" value="30000" /></label>
+    <label>Nº de papéis<input id="nPapeis" type="number" step="1" min="1" value="5" /></label>
+    <label>2ª parcela: abaixo da abertura (%)<input id="p2" type="number" step="1" value="10" /></label>
+    <label>3ª parcela: abaixo da abertura (%)<input id="p3" type="number" step="1" value="20" /></label>
   </div>
   <div class="kpis" id="kpis"></div>
   <details>
@@ -87,11 +93,11 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
 </section>
 
 <section class="painel">
-  <h2>🟢 Compra — maiores quedas entre as saudáveis</h2>
-  <div class="fraco" style="font-size:12px">Nota ≥ mínima, lucro positivo, com o choque do DI já descontado do lucro. Ordem: maior queda primeiro. <b>Excesso</b> = queda além do que o beta explica (só com teórico ou abertura real) — quanto mais negativo, mais a queda parece exagero.</div>
+  <h2>🟢 Compra ao som dos canhões — saudáveis que mais caem</h2>
+  <div class="fraco" style="font-size:12px">Nota ≥ mínima, lucro positivo (choque do DI já descontado), queda ≥ mínima, líquido. Os primeiros <b>N</b> (destacados) formam a carteira: capital ÷ N por papel, em <b>3 parcelas</b> — leilão de abertura, −10% e −20% abaixo da abertura (ordens limitadas já deixadas no livro). <b>Excesso</b> = queda além do que o mercado explica (pânico × beta) — só com teórico ou abertura real; quanto mais negativo, mais exagero. <b>Alvo</b> = metade do buraco fechado.</div>
   <div class="linha">
     <label style="flex-direction:row;align-items:center;gap:6px">ordenar por
-      <select id="ordem" style="width:auto"><option value="queda">maior queda</option><option value="excesso">maior excesso</option><option value="oport">oportunidade (queda × nota)</option></select>
+      <select id="ordem" style="width:auto"><option value="oport">oportunidade (excesso/queda × nota)</option><option value="queda">maior queda</option><option value="excesso">maior excesso</option></select>
     </label>
     <button id="btCopiar">copiar tickers p/ o Profit</button>
     <span class="fraco" id="copiado"></span>
@@ -100,10 +106,9 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
 </section>
 
 <section class="painel">
-  <h2>🔴 Venda — tese "Flávio vence" (quebrou)</h2>
-  <div class="fraco" style="font-size:12px">Papéis que apostavam na vitória do Flávio Bolsonaro. Edite a lista (fica salva neste aparelho). Vender <b>no repique</b> depois da abertura, não no leilão: no leilão a queda já está toda no preço.</div>
-  <label style="margin-top:8px">tickers<input id="flavio" /></label>
-  <div class="rolagem"><table id="tVenda"></table></div>
+  <h2>⚠️ Armadilhas — caem muito, mas o balanço não aguenta o DI</h2>
+  <div class="fraco" style="font-size:12px">Barato por um motivo: dívida que o juro novo encarece, prejuízo ou caixa curto. Não vender no pânico o que já se tem (a queda já está no preço); só não aumentar a posição.</div>
+  <div class="rolagem"><table id="tArmadilha"></table></div>
 </section>
 
 <section class="painel">
@@ -116,6 +121,16 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
 </section>
 
 <section class="painel fraco" style="font-size:12px">
+  <h2 style="color:var(--texto)">Regras da compra no pânico</h2>
+  <ol style="margin:4px 0 12px;padding-left:18px">
+    <li><b>Não vender</b> no dia: com papéis caindo 30–50%, a venda realiza o pior preço. O que é frágil fica, só não recebe mais dinheiro.</li>
+    <li><b>Só saudáveis e líquidas</b>: nota ≥ mínima e volume ≥ mínimo (as líquidas são as primeiras a voltar e dá para sair).</li>
+    <li><b>Prioridade</b>: maior excesso de queda × nota — a queda que o balanço não justifica. Caixa líquido primeiro (o DI não as atinge).</li>
+    <li><b>Entrada em 3 parcelas</b> por papel: 1/3 no leilão, 1/3 a −10% e 1/3 a −20% da abertura. Nunca tudo de uma vez: o fundo de um dia de 50% ninguém acerta.</li>
+    <li><b>Sem stop curto</b>: a volatilidade de hoje estopa tudo. O risco é controlado pelo tamanho (capital ÷ N ÷ 3) e pela saúde do balanço.</li>
+    <li><b>Saída</b>: metade no <b>alvo</b> (metade do buraco fechado); o resto como posição enquanto a nota seguir ≥ mínima nos próximos balanços.</li>
+    <li><b>Circuit breaker</b>: Ibovespa −10% para 30 min, −15% (hoje no futuro) para 1 h. Na volta há leilão — reavalie com a abertura real.</li>
+  </ol>
   <h2 style="color:var(--texto)">Como a nota de saúde é feita (0–100)</h2>
   Começa em 100 e desconta: lucro 12m ≤ 0 (−40); dívida líquida/EBIT 1–2× (−10), 2–3× (−25), &gt;3× ou EBIT negativo com dívida (−40);
   <b>choque do DI</b>: dívida líquida × alta do DI em p.p. × (1 − 34% de IR) contra o lucro 12m — desconta metade do % do lucro consumido, até −30;
@@ -123,7 +138,7 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
   lucro do trimestre caindo mais de 30% contra o ano anterior (−5); estatal (−15, risco de interferência).
   Bancos e seguradoras: nota manual (o plano de contas não traz dívida/EBIT), revise no <code>termometro.py</code>.
   Balanços: CVM (ITR/DFP) via base do overnight; betas: 250 pregões de retorno diário contra IBOV e dólar.
-  <br><br>Não é recomendação de investimento: é um filtro para acelerar a sua decisão no leilão.
+  <br><br>Não é recomendação de investimento: é um filtro para acelerar a sua decisão.
 </section>
 </main>
 
@@ -136,8 +151,8 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
     `https://raw.githubusercontent.com/${REPO}/main/dados/`,
     `https://cdn.jsdelivr.net/gh/${REPO}@main/dados/`,
   ];
-  const FLAVIO_PADRAO = "PETR4 PETR3 BBAS3 CMIG4 CSMG3 SAPR11 AXIA3 BRSR6 MGLU3 LREN3 AZZA3 CYRE3 MRVE3 DIRR3 COGN3 CVCB3 BPAN4";
-  const CHAVE = "termometro.v1";
+  const CHAVE = "termometro.v2";
+  const CAMPOS = ["ibov", "usd", "diBase", "diAlta", "panico", "premio", "notaMin", "estatais", "volMin", "quedaMin", "capital", "nPapeis", "p2", "p3", "teoricos", "ordem"];
   const $ = (id) => document.getElementById(id);
 
   let base = null, volume = {}, reais = {}, ordemTodos = { col: "nota", dir: 1 };
@@ -145,7 +160,7 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
   const guardado = (() => { try { return JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch { return {}; } })();
   const salvar = () => {
     const s = {};
-    for (const id of ["ibov", "usd", "diBase", "diAlta", "premio", "notaMin", "estatais", "volMin", "teoricos", "flavio", "ordem"]) s[id] = $(id).value;
+    for (const id of CAMPOS) s[id] = $(id).value;
     s.reais = reais;
     try { localStorage.setItem(CHAVE, JSON.stringify(s)); } catch {}
   };
@@ -181,6 +196,12 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
       usd: (num($("usd").value) ?? 0) / 100,
       diBase, diNovo: diBase * (1 + diAlta / 100), diPP: diBase * diAlta / 100,
       premio: (num($("premio").value) ?? 0) / 100,
+      panico: num($("panico").value) ?? 1,
+      quedaMin: (num($("quedaMin").value) ?? 0) / 100,
+      capital: num($("capital").value) ?? 0,
+      nPapeis: Math.max(1, Math.round(num($("nPapeis").value) ?? 5)),
+      p2: (num($("p2").value) ?? 10) / 100,
+      p3: (num($("p3").value) ?? 20) / 100,
       notaMin: num($("notaMin").value) ?? 70,
       estatais: $("estatais").value === "sim",
       volMin: (num($("volMin").value) ?? 0) * 1e6,
@@ -207,6 +228,7 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
       motivos.push(p.financeira[1]);
       return { nota: n, motivos, manual: true };
     }
+    if (p.semNota) return { nota: null, motivos: [p.semNota] };
     if (p.ebit12 == null && p.lucro12 == null) return { nota: null, motivos: ["sem balanço na CVM"] };
     let n = 100;
     const dl = (p.divCP || 0) + (p.divLP || 0) - (p.caixa || 0);
@@ -243,9 +265,16 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
     return Object.entries(base.papeis).map(([t, p]) => {
       const s = saude(t, p, c);
       const beta = p.beta ?? 1, betaUsd = p.betaUsd ?? 0;
-      const explicado = beta * c.ibov + betaUsd * c.usd;
-      let modelo = explicado + (p.estatal ? c.premio : 0);
-      modelo = Math.max(-0.4, Math.min(0.2, modelo));
+      const explicado = c.panico * beta * c.ibov + betaUsd * c.usd;
+      // castigo de balanço frágil: o pânico pune mais quem o DI alto machuca
+      let fragil = 0;
+      if (!s.manual && s.nota != null) {
+        if (!(p.lucro12 > 0)) fragil -= 0.08;
+        if (s.impactoDI != null && s.impactoDI < 0) fragil -= Math.min(0.15, -s.impactoDI * 0.25);
+        if (s.dl > 0 && (!(p.ebit12 > 0) || s.dlEbit > 3)) fragil -= 0.07;
+      }
+      let modelo = explicado + (p.estatal ? c.premio : 0) + fragil;
+      modelo = Math.max(-0.6, Math.min(0.2, modelo));
       let r = modelo, fonte = "mod";
       if (teo[t]) { r = teo[t].varPct ?? teo[t].preco / p.fech - 1; fonte = "teo"; }
       if (reais[t] != null) { r = reais[t] / p.fech - 1; fonte = "real"; }
@@ -271,45 +300,39 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
       ["DI", `${f(c.diBase, 2)}% → ${f(c.diNovo, 2)}%`, `+${f(c.diPP, 2)} p.p.`],
       ["queda mediana", pct(mediana(L.map((x) => x.r))), nReal ? `${nReal} com abertura real` : "estimada"],
       ["saudáveis", `${saud.length} de ${comBal.length}`, `nota ≥ ${c.notaMin}`],
+      ["caindo ≥ " + f(c.quedaMin * 100, 0) + "%", `${L.filter((x) => x.r <= -c.quedaMin).length}`, `${L.filter((x) => x.r <= -0.4).length} caindo 40% ou mais`],
       ["mediana saudáveis", pct(mediana(saud.map((x) => x.r))), "vs " + pct(mediana(comBal.filter((x) => x.s.nota < c.notaMin).map((x) => x.r))) + " nas demais"],
     ].map(([a, b, d]) => `<div class="kpi"><span class="fraco">${a}</span><b>${b}</b><span class="fraco" style="font-size:12px">${d}</span></div>`).join("");
 
     // COMPRA
     const ordem = $("ordem").value;
-    const compra = saud.filter((x) => x.r < 0 && (x.s.manual || x.p.lucro12 > 0) &&
+    const compra = saud.filter((x) => x.r <= -c.quedaMin && (x.s.manual || x.p.lucro12 > 0) &&
       (c.estatais || !x.p.estatal) && !(x.vol != null && x.vol < c.volMin));
-    const chave = { queda: (x) => x.r, excesso: (x) => x.excesso ?? x.r - (x.modelo), oport: (x) => x.r * (x.s.nota / 100) };
+    const chave = { queda: (x) => x.r, excesso: (x) => x.excesso ?? x.r, oport: (x) => (x.excesso ?? x.r) * (x.s.nota / 100) };
     compra.sort((a, b) => chave[ordem](a) - chave[ordem](b));
-    $("tCompra").innerHTML = `<tr><th>#</th><th class="e">papel</th><th class="e">empresa</th><th>nota</th><th>abertura</th><th>preço</th><th>fech. ant.</th><th>excesso</th><th>beta</th><th>dív.líq/EBIT</th><th>DI no lucro</th><th>ROE</th><th class="e">observações</th></tr>` +
-      (compra.slice(0, 40).map((x, i) => `<tr><td>${i + 1}</td><td class="e"><b>${x.t}</b></td><td class="e nome" title="${esc(x.p.nome)}">${esc(x.p.nome)}</td>
+    const porPapel = c.capital / c.nPapeis / 3;
+    const parcela = (preco) => `${brl(preco)} <span class="fraco">× ${Math.floor(porPapel / preco)}</span>`;
+    $("tCompra").innerHTML = `<tr><th>#</th><th class="e">papel</th><th class="e">empresa</th><th>nota</th><th>abertura</th><th>1ª · leilão</th><th>2ª · −${f(c.p2 * 100, 0)}%</th><th>3ª · −${f(c.p3 * 100, 0)}%</th><th>alvo</th><th>fech. ant.</th><th>excesso</th><th>dív.líq/EBIT</th><th>DI no lucro</th><th>ROE</th><th class="e">observações</th></tr>` +
+      (compra.slice(0, 40).map((x, i) => `<tr${i < c.nPapeis ? ' style="background:#14261A"' : ""}><td>${i + 1}</td><td class="e"><b>${x.t}</b></td><td class="e nome" title="${esc(x.p.nome)}">${esc(x.p.nome)}</td>
         <td><span class="nota" style="${corNota(x.s.nota)}">${x.s.nota}</span></td>
-        <td class="${cls(x.r)}">${pct(x.r)} ${tagFonte(x.fonte)}</td><td>${brl(x.preco)}</td><td class="fraco">${brl(x.p.fech)}</td>
-        <td class="${cls(x.excesso)}">${pct(x.excesso)}</td><td>${f(x.p.beta, 2)}</td>
+        <td class="${cls(x.r)}">${pct(x.r)} ${tagFonte(x.fonte)}</td>
+        <td>${parcela(x.preco)}</td><td>${parcela(x.preco * (1 - c.p2))}</td><td>${parcela(x.preco * (1 - c.p3))}</td>
+        <td class="pos">${brl(x.preco + (x.p.fech - x.preco) / 2)}</td><td class="fraco">${brl(x.p.fech)}</td>
+        <td class="${cls(x.excesso)}">${pct(x.excesso)}</td>
         <td>${x.s.manual ? "banco/seg." : x.s.dl <= 0 ? '<span class="pos">caixa líq.</span>' : f(x.s.dlEbit)}</td>
         <td class="${cls(x.s.impactoDI)}">${x.s.impactoDI == null ? "—" : pct(x.s.impactoDI, 0)}</td><td>${x.s.roe == null ? "—" : pct(x.s.roe, 0)}</td>
-        <td class="motivo">${esc(x.s.motivos.join(" · "))}</td></tr>`).join("") || `<tr><td colspan="13" class="e fraco">nenhum papel saudável em queda com esses filtros</td></tr>`);
+        <td class="motivo">${esc(x.s.motivos.join(" · "))}</td></tr>`).join("") || `<tr><td colspan="15" class="e fraco">nenhum papel saudável caindo ${pct(-c.quedaMin, 0)} ou mais com esses filtros</td></tr>`);
     $("btCopiar").onclick = () => {
       const txt = compra.slice(0, 40).map((x) => x.t).join("\n");
       navigator.clipboard?.writeText(txt).then(() => $("copiado").textContent = `${Math.min(40, compra.length)} tickers copiados`, () => $("copiado").textContent = txt.replace(/\n/g, " "));
     };
 
-    // VENDA (tese Flávio)
-    const lista = [...new Set($("flavio").value.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean))];
-    const porT = Object.fromEntries(L.map((x) => [x.t, x]));
-    $("tVenda").innerHTML = `<tr><th class="e">papel</th><th class="e">empresa</th><th>nota</th><th>abertura</th><th>preço</th><th>DI no lucro</th><th class="e">veredito</th><th class="e">por quê</th></tr>` +
-      lista.map((t) => {
-        const x = porT[t];
-        if (!x) return `<tr><td class="e"><b>${esc(t)}</b></td><td class="e fraco" colspan="7">fora do universo da coleta</td></tr>`;
-        let v, cor;
-        if (x.p.estatal) { v = "VENDER no repique"; cor = "neg"; }
-        else if (x.s.nota == null || x.s.nota < c.notaMin) { v = "VENDER no repique"; cor = "neg"; }
-        else if (x.s.impactoDI != null && x.s.impactoDI < -0.25) { v = "VENDER / reduzir"; cor = "neg"; }
-        else { v = "REVER — saudável, queda pode ser exagero"; cor = "ama"; }
-        const pq = x.p.estatal ? `tese de governança/privatização (${x.p.estatal}) não acontece com Lula` : x.s.motivos.slice(0, 3).join(" · ") || "balanço ok";
-        return `<tr><td class="e"><b>${t}</b></td><td class="e nome" title="${esc(x.p.nome)}">${esc(x.p.nome)}</td><td><span class="nota" style="${corNota(x.s.nota)}">${x.s.nota ?? "—"}</span></td>
-          <td class="${cls(x.r)}">${pct(x.r)} ${tagFonte(x.fonte)}</td><td>${brl(x.preco)}</td><td class="${cls(x.s.impactoDI)}">${x.s.impactoDI == null ? "—" : pct(x.s.impactoDI, 0)}</td>
-          <td class="e verd ${cor}">${v}</td><td class="motivo">${esc(pq)}</td></tr>`;
-      }).join("");
+    // ARMADILHAS
+    const armad = L.filter((x) => x.r <= -c.quedaMin && x.s.nota != null && x.s.nota < c.notaMin).sort((a, b) => a.r - b.r).slice(0, 25);
+    $("tArmadilha").innerHTML = `<tr><th class="e">papel</th><th class="e">empresa</th><th>nota</th><th>abertura</th><th>preço</th><th>DI no lucro</th><th class="e">por que não</th></tr>` +
+      (armad.map((x) => `<tr><td class="e"><b>${x.t}</b></td><td class="e nome" title="${esc(x.p.nome)}">${esc(x.p.nome)}</td><td><span class="nota" style="${corNota(x.s.nota)}">${x.s.nota}</span></td>
+        <td class="${cls(x.r)}">${pct(x.r)} ${tagFonte(x.fonte)}</td><td>${brl(x.preco)}</td><td class="${cls(x.s.impactoDI)}">${x.s.impactoDI == null ? "—" : pct(x.s.impactoDI, 0)}</td>
+        <td class="motivo">${esc(x.s.motivos.join(" · "))}</td></tr>`).join("") || `<tr><td colspan="7" class="e fraco">nenhuma</td></tr>`);
 
     // TODOS
     const q = $("busca").value.trim().toUpperCase();
@@ -358,9 +381,8 @@ details summary{cursor:pointer;color:var(--azul);margin-top:6px}
 
   async function iniciar() {
     for (const [id, v] of Object.entries(guardado)) if ($(id) && typeof v === "string") $(id).value = v;
-    if (!$("flavio").value) $("flavio").value = FLAVIO_PADRAO;
     reais = guardado.reais || {};
-    for (const id of ["ibov", "usd", "diBase", "diAlta", "premio", "notaMin", "estatais", "volMin", "teoricos", "flavio", "ordem", "busca"]) $(id).addEventListener("input", render);
+    for (const id of [...CAMPOS, "busca"]) $(id).addEventListener("input", render);
     $("btReal").onclick = buscarReal;
     $("btLimpar").onclick = () => { reais = {}; $("statusReal").textContent = ""; render(); };
     try {
