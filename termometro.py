@@ -71,8 +71,8 @@ CLASSIF_MANUAL = {
     "ITUB3": [90, "ROE ~22%, capital folgado, inadimplência controlada"],
     "ITUB4": [90, "ROE ~22%, capital folgado, inadimplência controlada"],
     "BPAC11": [85, "ROE alto, banco de investimento; volátil em estresse"],
-    "BBDC3": [68, "recuperação de rentabilidade em curso"],
-    "BBDC4": [68, "recuperação de rentabilidade em curso"],
+    "BBDC3": [72, "rentabilidade em recuperação; capital ok, sem risco político"],
+    "BBDC4": [72, "rentabilidade em recuperação; capital ok, sem risco político"],
     "SANB11": [68, "ROE abaixo dos pares"],
     "ABCB4": [70, "atacado, bom capital"],
     "BBAS3": [55, "inadimplência no agro e risco de uso político"],
@@ -395,6 +395,7 @@ def main():
         },
         "janelaBeta": len(dias_ibov) - 1,
         "mercado": mercado,
+        "feriados": indice.get("feriados", []),
         "campos": {
             "caixa": "caixa + aplicações financeiras, R$",
             "divCP/divLP": "empréstimos e financiamentos de curto/longo prazo, R$",

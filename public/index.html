@@ -47,6 +47,9 @@ tr[data-t]{cursor:pointer}
 tr.p:hover td{background:var(--realce)}
 td.n{white-space:nowrap}
 td.resumo{min-width:280px;font-size:12.5px;line-height:1.4}
+td.opc{min-width:190px;max-width:260px;font-size:12px;line-height:1.4;white-space:normal;color:var(--fraco)}
+td.opc b{color:var(--texto)}
+.opc-m{margin-top:4px;padding-top:4px;border-top:1px dashed var(--borda)}
 td.resumo b{color:var(--texto)}
 .sub{display:block;color:var(--fraco);font-size:11.5px;white-space:nowrap}
 .neg{color:var(--vermelho)}.pos{color:var(--verde)}.ama{color:var(--amarelo)}
@@ -71,7 +74,7 @@ tr.rm{display:none}
   tr.p td{display:block;padding:0;border:none;white-space:normal;min-width:0}
   tr.p td:nth-child(2) .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   tr:hover td{background:transparent}
-  tr.p td:first-child,tr.p td.resumo{display:none}
+  tr.p td:first-child,tr.p td.resumo,tr.p td.opc{display:none}
   tr.p td:nth-child(2){grid-column:1}tr.p td:nth-child(3){grid-column:2}tr.p td:nth-child(4){grid-column:3}
   tr.p td:nth-child(5){grid-column:1/4;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-top:2px}
   tr.p td:nth-child(5) .sub{display:inline}
@@ -86,7 +89,7 @@ tr.rm{display:none}
 <main>
 <header>
   <h1>🌡️ Termômetro B3</h1>
-  <span class="tag" title="versão do app · 26/10/2026 — lista única com veredito e resumo">v2.0 · 26/10/2026</span>
+  <span class="tag" title="versão do app · 26/10/2026 — coluna de opções (só CALL) com as regras do app de derivativos">v2.1 · 26/10/2026</span>
   <span class="fraco pq" id="info">carregando a base…</span>
 </header>
 
@@ -140,10 +143,11 @@ tr.rm{display:none}
 
 <section class="painel fraco pq doc">
   <details>
-    <summary>como ler: veredito, nota, preço justo</summary>
+    <summary>como ler: veredito, nota, preço justo, opções</summary>
     <p><b>Veredito.</b> <span class="verd v1">COMPRAR</span> saudável (nota ≥ mínima), caiu além da queda mínima <i>e</i> além do que o beta explica (exagero), e está abaixo do preço justo ou 30%+ abaixo do consenso. <span class="verd v2">OBSERVAR</span> saudável e caiu, mas em linha com o mercado ou ainda cara pelo modelo. <span class="verd v3">CARA</span> saudável, mas acima do justo e do consenso. <span class="verd v4">EVITAR</span> balanço frágil (nota &lt; mínima), prejuízo ou estatal. <span class="verd v0">SEM DADOS</span> sem balanço comparável (bancos só têm nota manual e consenso).</p>
     <p><b>Nota de saúde (0–100).</b> Começa em 100 e desconta: prejuízo 12m (−40); dívida líquida/EBIT 1–2× (−10), 2–3× (−25), &gt;3× ou EBIT negativo (−40); <b>choque do DI</b> = dívida líquida × alta do DI × (1 − 34% IR) contra o lucro — desconta metade do % consumido, até −30; dívida de curto prazo &gt; caixa (−15); dív. líq./PL &gt; 1,5× (−10); ROE &lt; 5% (−10) ou &gt; 15% (+5); lucro em menos de 4 dos 5 últimos anos (−15); margem líquida &lt; 3% (−5); lucro do trimestre caindo &gt; 30% (−5); estatal (−15); patrimônio negativo (−30). Bancos e seguradoras: nota manual (<code>termometro.py</code>).</p>
     <p><b>Preço justo.</b> Lucro residual sobre o patrimônio: <code>VPA × (ROEₙ − g) / (Ke − g)</code>. ROEₙ = mediana do lucro dos 3 últimos exercícios e dos 12 meses ÷ patrimônio. Ke = juro longo (DI jan/2035) + prêmio de risco. Com DI/35 a 15,4% o Ke passa de 19% e o modelo sai 40–60% abaixo dos bancos, que usam 13–15%: é o juro de hoje falando. Ponha 12,7 (sexta) no juro longo para ver o valor pré-eleição. O justo mostrado é o meio da faixa entre esse valor e o <i>justo pelo lucro</i> (LPAₙ ÷ (Ke − g)) — o modelo sobre o patrimônio castiga empresas que usam pouco capital (B3, WEG, Raia). Nos detalhes: os dois valores, Graham (√(22,5 × LPA × VPA)) e o consenso (<code>dados/alvos.json</code>, manual, 26/10 antes do pregão).</p>
+    <p><b>Opções (só CALL)</b> — as regras do app de derivativos, aplicadas por papel: só nos vereditos COMPRAR/OBSERVAR <i>e</i> com grade líquida (tabela <code>OPCOES</code> na página; fora dela, compre a ação). Vencimento: o mensal (3ª sexta) com 25+ dias pela frente — dezembro (série L) antes de novembro (K), porque o valor no tempo derrete em 3 semanas; se cair em feriado, confirme. Strike um pouco dentro do dinheiro (≈ 95% da tela) para a posição principal; <b>trava de alta</b> (compra o strike baixo, vende ≈ 110%) quando a volatilidade implícita estiver acima de 2× a histórica (VH = desvio diário × √252) — hoje a implícita é o prêmio do pânico, e a queda dela come o ganho mesmo com o papel subindo. Entrada em 2–3 parcelas (a mínima do circuit breaker costuma vir 1–3 dias depois), só ordem limitada, spread ≤ 10% do prêmio, e só o que aceita perder 100%. Códigos de série e prêmios: no Profit. BOVA11 no dinheiro = repique do índice sem risco de um papel só.</p>
     <p><b>Hoje / excesso.</b> Sem preço de tela, a variação é estimada (pânico × beta × IBOV + beta dólar × dólar + castigo de balanço frágil + prêmio político). Excesso = variação − beta × IBOV: o que a queda tem além do mercado. Fontes: CVM (via base overnight), COTAHIST, Yahoo (15 min). Não é recomendação de investimento.</p>
   </details>
 </section>
@@ -302,6 +306,7 @@ tr.rm{display:none}
         pl: fu.lpa > 0 ? preco / fu.lpa : null, pvp: fu.vpa > 0 ? preco / fu.vpa : null };
       x.v = veredito(x, c);
       x.resumo = resumo(x, c);
+      x.opc = opcoes(x, c);
       // força para recuperar: exagero × qualidade, com bônus por desconto ao justo/consenso
       x.forca = x.v.k >= 3 ? 0 : (-Math.min(0, excesso) * 100) * (s.nota / 100) + (dist != null && dist < 0 ? 5 : 0) + (distCons != null && distCons < -0.3 ? 3 : 0);
       return x;
@@ -351,6 +356,49 @@ tr.rm{display:none}
     if (p.alvo) pr.push(`${x.distCons < 0 ? `<b class="pos">${pct(-x.distCons, 0).replace("+", "")} abaixo</b>` : `${pct(x.distCons, 0).replace("+", "")} acima`} do consenso ${brl(p.alvo.preco)} (${esc(p.alvo.fonte.split(" (")[0])})`);
     if (pr.length) out.push(pr.join("; ") + ".");
     return out.join(" ");
+  }
+
+  // ---- Opções (só CALL): as regras do app de derivativos ----
+  // papéis com grade de opções líquida na B3 (1 = muito líquida, 2 = razoável; fora da lista = sem liquidez)
+  const OPCOES = {
+    PETR4: 1, VALE3: 1, ITUB4: 1, BBDC4: 1, BBAS3: 1, B3SA3: 1, MGLU3: 1, ABEV3: 1, PRIO3: 1, BOVA11: 1,
+    WEGE3: 2, SUZB3: 2, ITSA4: 2, RENT3: 2, BPAC11: 2, COGN3: 2, HAPV3: 2, CSNA3: 2, GGBR4: 2, USIM5: 2, EMBJ3: 2,
+    RAIZ4: 2, LREN3: 2, RDOR3: 2, AXIA3: 2, CMIG4: 2, BBSE3: 2, RADL3: 2, EQTL3: 2, CPLE6: 2, VBBR3: 2, AZUL4: 2,
+    CVCB3: 2, BRAV3: 2, VAMO3: 2, CSAN3: 2, BBDC3: 2, PETR3: 2, ASAI3: 2, CYRE3: 2, MULT3: 2, ALOS3: 2, TIMS3: 2, VIVT3: 2,
+    SBSP3: 2, ENEV3: 2, KLBN11: 2, GOAU4: 2, CMIN3: 2, BRFS3: 2, MBRF3: 2, JBSS3: 2, SMTO3: 2, UGPA3: 2, TOTS3: 2, CPFE3: 2, ELET6: 2, SANB11: 2,
+  };
+  const SERIE_CALL = "ABCDEFGHIJKL";
+  /** vencimento mensal (3ª sexta) com pelo menos 25 dias pela frente — o app prefere dezembro a novembro */
+  function venc() {
+    const hoje = new Date(Date.now() - 3 * 3600e3);
+    for (let k = 0; k < 4; k++) {
+      const m = hoje.getUTCMonth() + k, ano = hoje.getUTCFullYear() + Math.floor(m / 12), mes = m % 12;
+      const d1 = new Date(Date.UTC(ano, mes, 1)), sexta = 1 + ((5 - d1.getUTCDay() + 7) % 7) + 14;
+      const data = new Date(Date.UTC(ano, mes, sexta));
+      if ((data - hoje) / 864e5 >= 25) {
+        const nome = data.toLocaleDateString("pt-BR", { month: "short", timeZone: "UTC" }).replace(".", "");
+        const feriado = base?.feriados?.includes?.(data.toISOString().slice(0, 10));
+        return { data, txt: `CALL ${nome} · série ${SERIE_CALL[mes]} · ${String(sexta).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}${feriado ? " (feriado — confirme a data)" : ""}` };
+      }
+    }
+  }
+  const strike = (v) => { const passo = v < 10 ? 0.25 : v < 25 ? 0.5 : v < 60 ? 1 : 2; return Math.round(v / passo) * passo; };
+  function opcoes(x, c) {
+    const liq = OPCOES[x.t];
+    const vh = x.p.vol ? x.p.vol * Math.sqrt(252) : null;
+    const vhTxt = vh ? ` VH ${f(vh * 100, 0)}% a.a.: implícita acima de ${f(vh * 200, 0)}% é cara → prefira a trava.` : "";
+    if (x.v.k === 4 || x.v.k === 0) return liq ? "<b>Sem call</b> — o app exclui (balanço frágil, estatal ou sem dados)." : "—";
+    if (!liq) return x.v.k <= 2 ? "<b>Sem opções líquidas</b> — se gostar da tese, compre a ação." : "—";
+    const v = venc(), p = x.preco;
+    const itm = strike(p * 0.95), otm = strike(p * 1.1);
+    if (x.v.k === 1 && liq === 1) {
+      const tam = x.s.nota >= 85 ? "pode levar a maior parte da posição" : "posição pequena";
+      return `<b>${v.txt}</b>, strike ${brl(itm)} (um pouco dentro do dinheiro) ou trava de alta ${brl(itm)}/${brl(otm)}; ${tam}.${vhTxt} Entrada em 2–3 parcelas, ordem limitada, spread ≤ 10% do prêmio.`;
+    }
+    if (x.v.k === 1) return `<b>${v.txt}</b>, strike ${brl(itm)}, <b>só com liquidez</b>: ordem limitada, spread ≤ 10% do prêmio e negócios na série; senão, a ação.${vhTxt}`;
+    if (x.v.k === 2 && liq === 1 && x.s.nota >= 85) return `<b>${v.txt}</b>, strike ${brl(itm)}: caiu em linha com o índice, sem exagero — é a aposta <b>segura</b> no repique (posição principal do app de derivativos). Ou trava ${brl(itm)}/${brl(otm)}.${vhTxt} 2–3 parcelas, ordem limitada, spread ≤ 10%.`;
+    if (x.v.k === 2) return `Só depois do preço de tela confirmar o exagero; se entrar, <b>trava de alta</b> ${brl(itm)}/${brl(otm)} — ${v.txt} — vende a volatilidade cara.${vhTxt}`;
+    return `Cara pelo modelo: call só como <b>trava de alta</b> ${brl(itm)}/${brl(otm)}, posição pequena.`;
   }
 
   const corNota = (n) => n == null ? "background:#30363D" : n >= 80 ? "background:#1B4721;color:#7EE787" : n >= 70 ? "background:#2D3B1A;color:#B4E07A" : n >= 50 ? "background:#3D2F0A;color:#E3B341" : "background:#4A1A1A;color:#FF9C95";
@@ -405,17 +453,17 @@ tr.rm{display:none}
     const ordem = $("ordem").value;
     const chave = { forca: (x) => -x.forca, excesso: (x) => x.excesso, dist: (x) => x.dist ?? 9, queda: (x) => x.r, nota: (x) => -(x.s.nota ?? -1) };
     lista.sort((a, b) => (aba === "todos" && !q ? a.v.k - b.v.k : 0) || chave[ordem](a) - chave[ordem](b));
-    $("legenda").innerHTML = aba === "compra" ? `saudáveis (nota ≥ ${c.notaMin}) caindo ${pct(-c.quedaMin, 0)} ou mais, líquidas. Ordem: ${$("ordem").selectedOptions[0].text}. Clique na linha para os detalhes.`
+    $("legenda").innerHTML = aba === "compra" ? `saudáveis (nota ≥ ${c.notaMin}) caindo ${pct(-c.quedaMin, 0)} ou mais, líquidas. Ordem: ${$("ordem").selectedOptions[0].text}. Clique na linha para os detalhes. <b>Índice:</b> ${venc().txt} de <b>BOVA11</b> no dinheiro = aposta no repique sem risco de um papel só.`
       : aba === "armadilha" ? "caem muito, mas o balanço não aguenta o DI (nota abaixo da mínima, prejuízo ou estatal)." : "todos os papéis, por veredito. Clique na linha para os detalhes.";
-    const colunas = ["#", "papel", "veredito", "hoje", "preço", "resumo"];
-    $("tabela").innerHTML = `<tr>${colunas.map((k) => `<th class="${k === "resumo" ? "resumo" : ""}">${k}</th>`).join("")}</tr>` + lista.slice(0, aba === "todos" ? 400 : 60).map((x, i) => {
+    const colunas = ["#", "papel", "veredito", "hoje", "preço", "resumo", "opções (só CALL)"];
+    $("tabela").innerHTML = `<tr>${colunas.map((k) => `<th class="${k === "resumo" ? "resumo" : k.startsWith("opções") ? "opc" : ""}">${k}</th>`).join("")}</tr>` + lista.slice(0, aba === "todos" ? 400 : 60).map((x, i) => {
       const prec = `<b>${brl(x.preco)}</b>${x.j.modelo ? `<span class="sub" title="patrimônio–lucro">justo ${x.j.faixa || brl(x.j.modelo)} <span class="${cls(x.dist)}">${pct(x.dist, 0)}</span></span>` : ""}${x.p.alvo ? `<span class="sub">cons. ${brl(x.p.alvo.preco)} <span class="${cls(x.distCons)}">${pct(x.distCons, 0)}</span></span>` : ""}`;
       const hj = `<b class="${cls(x.r)}">${pct(x.r)}</b>${tagFonte(x.fonte)}<span class="sub">${pp(x.excesso)} vs beta</span>`;
       return `<tr class="p" data-t="${x.t}"><td class="n fraco">${i + 1}</td><td class="n"><b>${x.t}</b><span class="sub" title="${esc(x.p.nome)}">${esc((x.p.nome || "").replace(/\s+(S\.?A\.?|S\/A)(\s.*)?$/i, "").replace(/\s+-\s.*$/, "").slice(0, 26))}</span></td>
         <td class="n"><span class="verd v${x.v.k}">${x.v.txt}</span><span class="sub">nota <span class="nota" style="${corNota(x.s.nota)}">${x.s.nota ?? "—"}</span></span></td>
-        <td class="n">${hj}</td><td class="n">${prec}</td><td class="resumo">${x.resumo}</td></tr><tr class="rm" data-t="${x.t}"><td colspan="5">${x.resumo}</td></tr>` +
-        (aberto.has(x.t) ? `<tr class="det"><td colspan="6">${detalhes(x)}</td></tr>` : "");
-    }).join("") || `<tr><td colspan="6" class="fraco">nada com esses filtros</td></tr>`;
+        <td class="n">${hj}</td><td class="n">${prec}</td><td class="resumo">${x.resumo}</td><td class="opc">${x.opc}</td></tr><tr class="rm" data-t="${x.t}"><td colspan="6">${x.resumo}<div class="opc-m"><b>Opções:</b> ${x.opc}</div></td></tr>` +
+        (aberto.has(x.t) ? `<tr class="det"><td colspan="7">${detalhes(x)}</td></tr>` : "");
+    }).join("") || `<tr><td colspan="7" class="fraco">nada com esses filtros</td></tr>`;
     $("tabela").querySelectorAll("tr[data-t]").forEach((tr) => tr.onclick = () => { const t = tr.dataset.t; aberto.has(t) ? aberto.delete(t) : aberto.add(t); render(); });
     $("btCopiar").onclick = () => {
       const txt = lista.slice(0, 60).map((x) => x.t).join("\n");

@@ -1,9 +1,10 @@
 # Termômetro B3 — swing trade no pânico
 
-**Versão atual: v2.0 (26/10/2026)** — aparece ao lado do título na página.
+**Versão atual: v2.1 (26/10/2026)** — aparece ao lado do título na página.
 
 | Versão | Data | O que mudou |
 |---|---|---|
+| v2.1 | 26/10/2026 | coluna **opções (só CALL)** por papel com as regras do app de derivativos: vencimento, strike, trava de alta, VH, execução |
 | v2.0 | 26/10/2026 | lista única com abas, veredito por papel, resumo em texto, detalhes ao clicar, cartões no celular, preço justo como faixa patrimônio–lucro |
 | v1.1 | 26/10/2026 | o termômetro vira o app: preço justo, consenso, lucro constante, racionalidade da queda |
 | v1.0 | 26/10/2026 | termômetro da abertura dentro do app intraday |
