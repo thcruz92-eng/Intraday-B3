@@ -64,9 +64,19 @@ code{background:var(--bg);padding:1px 4px;border-radius:4px}
 tr.rm{display:none}
 @media (max-width:700px){
   main{padding:8px 12px 40px}h1{font-size:18px}
-  td.resumo,th.resumo{display:none}
-  tr.rm{display:table-row}tr.rm td{padding-top:0;font-size:12.5px;line-height:1.4;white-space:normal;border-bottom:1px solid var(--borda)}
-  tr.p td{border-bottom:none}
+  .rolagem{overflow:visible}
+  table,tbody{display:block}
+  table tr:first-child{display:none}
+  tr.p{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:2px 10px;padding:8px 0 4px;border-bottom:none}
+  tr.p td{display:block;padding:0;border:none;white-space:normal;min-width:0}
+  tr.p td:nth-child(2) .sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  tr:hover td{background:transparent}
+  tr.p td:first-child,td.resumo{display:none}
+  tr.p td:nth-child(2){grid-column:1}tr.p td:nth-child(3){grid-column:2}tr.p td:nth-child(4){grid-column:3}
+  tr.p td:nth-child(5){grid-column:1/4;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;margin-top:2px}
+  tr.p td:nth-child(5) .sub{display:inline}
+  tr.rm{display:block}tr.rm td{display:block;padding:4px 0 10px;font-size:12.5px;line-height:1.4;border-bottom:1px solid var(--borda)}
+  tr.det{display:block}tr.det td{display:block;padding:8px 0}
   .sub{white-space:normal}
 }
 </style>
