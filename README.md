@@ -1,9 +1,10 @@
 # Termômetro B3 — swing trade no pânico
 
-**Versão atual: v2.3 (28/10/2026)** — aparece ao lado do título na página.
+**Versão atual: v2.4 (28/10/2026)** — aparece ao lado do título na página.
 
 | Versão | Data | O que mudou |
 |---|---|---|
+| v2.4 | 28/10/2026 | curva de juros em `dados/juros.json` (Focus 26/10, Tesouro Direto agosto × hoje, DI jan/28 e jan/35) alimenta a linha "curva de juros" e os quatro botões de cenário (agosto / hoje / pânico / Focus); custo da dívida passa a ser o DI jan/28 |
 | v2.3 | 28/10/2026 | referência agosto/2026 ("Lula comum") por papel e no IBOV/dólar, esperado pelo beta, irracionalidade no veredito e no resumo, filtro e ordem "abaixo de agosto", botões de cenário (Lula = agosto / pânico 26/10), quem ganha com o fim das bets, variação real do último pregão da base |
 | v2.2 | 26/10/2026 | barra de filtros combináveis sobre a lista: nota, veredito, excesso vs IBOV, queda, lucro em 5/5 anos, caixa líquido, ROE, dív.líq/EBIT, % abaixo do justo/consenso, opções líquidas |
 | v2.1 | 26/10/2026 | coluna **opções (só CALL)** por papel com as regras do app de derivativos: vencimento, strike, trava de alta, VH, execução |
@@ -36,6 +37,7 @@ Não é recomendação de investimento.
 |---|---|
 | `public/index.html` | a página (HTML + JS, sem build) |
 | `termometro.py` | gera `dados/termometro.json`: balanços (CVM, via base do projeto overnight), betas, ações em circulação, lucros anuais, consenso |
+| `dados/juros.json` | curva de juros (Focus, Tesouro Direto, DI) com fonte e data; os botões de cenário leem daqui — edite quando sair o Focus de segunda |
 | `dados/alvos.json` | preço-alvo de consenso por papel, **manual** — `{preco, fonte, data, n}`. Edite quando as casas revisarem |
 | `dados/termometro.json` | saída do `termometro.py`; a página lê daqui |
 | `coleta_intraday.py` + `.github/workflows/coleta-intraday.yml` | o robô: traz o COTAHIST diário (`dados/diario/`) e o IBOV/dólar (`dados/60m/`), de onde saem fechamento, variação do dia e betas; depois roda o `termometro.py` |

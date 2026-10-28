@@ -96,7 +96,7 @@ tr.rm{display:none}
 <main>
 <header>
   <h1>🌡️ Termômetro B3</h1>
-  <span class="tag" title="versão do app · 28/10/2026 — referência agosto/2026 (patamar Lula), cenário Lula = agosto, fim das bets, variação real do último pregão">v2.3 · 28/10/2026</span>
+  <span class="tag" title="versão do app · 28/10/2026 — curva de juros do Focus e do Tesouro Direto (dados/juros.json) calibra os cenários">v2.4 · 28/10/2026</span>
   <span class="fraco pq" id="info">carregando a base…</span>
 </header>
 
@@ -104,7 +104,7 @@ tr.rm{display:none}
   <div class="grade">
     <label>Ibovespa hoje (%)<input id="ibov" type="number" step="0.1" value="-15" /></label>
     <label>Dólar hoje (%)<input id="usd" type="number" step="0.1" value="9" /></label>
-    <label>Juro longo DI/35 (%)<input id="juroLongo" type="number" step="0.1" value="15.4" /></label>
+    <label>Juro longo — Pré 2037 / DI 35 (%)<input id="juroLongo" type="number" step="0.1" value="14.8" /></label>
     <label>Nota mínima<input id="notaMin" type="number" step="5" value="70" /></label>
     <label>Queda mínima (dia ou desde a eleição, %)<input id="quedaMin" type="number" step="1" value="15" /></label>
     <label>Ordenar por<select id="ordem"><option value="forca">força p/ recuperar</option><option value="excesso">exagero vs IBOV</option><option value="dist">desconto p/ o justo</option><option value="queda">maior queda</option><option value="ago">abaixo de agosto/26</option><option value="nota">nota</option></select></label>
@@ -113,18 +113,18 @@ tr.rm{display:none}
     <button class="prim" id="btReal">buscar preço de tela agora</button>
     <button id="btLimpar">limpar</button>
     <span class="sep" style="width:1px;height:18px;background:var(--borda)"></span>
-    <button id="btAgosto" title="juro longo 14,25 (DI/35 de agosto ≈ 13,5 + 0,75 p.p. das promessas), DI 1 ano 12,8 → 13,55: o que o Lula reeleito deveria valer, sem o prêmio do pânico">cenário Lula = agosto/26</button>
-    <button id="btPanico" title="juro longo 15,4 e DI 1 ano 15,4: o que o mercado precificou em 26/10">cenário pânico 26/10</button>
+    <span id="cenarios"></span>
     <span class="fraco pq" id="statusReal"></span>
   </div>
+  <div class="fraco pq" id="curva" style="margin-top:8px"></div>
   <div class="kpis" id="kpis"></div>
   <details>
     <summary>mais ajustes e colar preços do Profit</summary>
     <div class="grade" style="margin-top:8px">
       <label>Amplificação do pânico (×)<input id="panico" type="number" step="0.1" value="1.5" /></label>
       <label>Prêmio político estatais (p.p.)<input id="premio" type="number" step="0.5" value="-6" /></label>
-      <label>DI 1 ano antes (%)<input id="diBase" type="number" step="0.05" value="12.8" /></label>
-      <label>DI 1 ano agora (%)<input id="diNovo" type="number" step="0.05" value="15.4" /></label>
+      <label>DI jan/28 na véspera (custo da dívida, %)<input id="diBase" type="number" step="0.05" value="12.8" /></label>
+      <label>DI jan/28 agora (%)<input id="diNovo" type="number" step="0.05" value="14.0" /></label>
       <label>Prêmio de risco da ação (p.p.)<input id="premioRisco" type="number" step="0.5" value="4.5" /></label>
       <label>Crescimento perpétuo g (%)<input id="g" type="number" step="0.5" value="5" /></label>
       <label>Volume mínimo (R$ MM/dia)<input id="volMin" type="number" step="5" value="30" /></label>
@@ -177,9 +177,9 @@ tr.rm{display:none}
     <summary>como ler: veredito, nota, preço justo, opções</summary>
     <p><b>Veredito.</b> <span class="verd v1">COMPRAR</span> saudável (nota ≥ mínima), caiu além da queda mínima <i>e</i> além do que o beta explica (exagero), e está abaixo do preço justo ou 30%+ abaixo do consenso. <span class="verd v2">OBSERVAR</span> saudável e caiu, mas em linha com o mercado ou ainda cara pelo modelo. <span class="verd v3">CARA</span> saudável, mas acima do justo e do consenso. <span class="verd v4">EVITAR</span> balanço frágil (nota &lt; mínima), prejuízo ou estatal. <span class="verd v0">SEM DADOS</span> sem balanço comparável (bancos só têm nota manual e consenso).</p>
     <p><b>Nota de saúde (0–100).</b> Começa em 100 e desconta: prejuízo 12m (−40); dívida líquida/EBIT 1–2× (−10), 2–3× (−25), &gt;3× ou EBIT negativo (−40); <b>choque do DI</b> = dívida líquida × alta do DI × (1 − 34% IR) contra o lucro — desconta metade do % consumido, até −30; dívida de curto prazo &gt; caixa (−15); dív. líq./PL &gt; 1,5× (−10); ROE &lt; 5% (−10) ou &gt; 15% (+5); lucro em menos de 4 dos 5 últimos anos (−15); margem líquida &lt; 3% (−5); lucro do trimestre caindo &gt; 30% (−5); estatal (−15); patrimônio negativo (−30). Bancos e seguradoras: nota manual (<code>termometro.py</code>).</p>
-    <p><b>Preço justo.</b> Lucro residual sobre o patrimônio: <code>VPA × (ROEₙ − g) / (Ke − g)</code>. ROEₙ = mediana do lucro dos 3 últimos exercícios e dos 12 meses ÷ patrimônio. Ke = juro longo (DI jan/2035) + prêmio de risco. Com DI/35 a 15,4% o Ke passa de 19% e o modelo sai 40–60% abaixo dos bancos, que usam 13–15%: é o juro de hoje falando. Ponha 12,7 (sexta) no juro longo para ver o valor pré-eleição. O justo mostrado é o meio da faixa entre esse valor e o <i>justo pelo lucro</i> (LPAₙ ÷ (Ke − g)) — o modelo sobre o patrimônio castiga empresas que usam pouco capital (B3, WEG, Raia). Nos detalhes: os dois valores, Graham (√(22,5 × LPA × VPA)) e o consenso (<code>dados/alvos.json</code>, manual, 26/10 antes do pregão).</p>
+    <p><b>Preço justo.</b> Lucro residual sobre o patrimônio: <code>VPA × (ROEₙ − g) / (Ke − g)</code>. ROEₙ = mediana do lucro dos 3 últimos exercícios e dos 12 meses ÷ patrimônio. Ke = juro longo (Tesouro Prefixado 2037 / DI jan/35) + prêmio de risco. Com o longo a 14,8% o Ke passa de 19% e o modelo sai 40–60% abaixo dos bancos, que usam 13–15%: é o juro de hoje falando. O botão <b>cenário Focus</b> (12,7) mostra o valor com a curva da véspera da eleição. O justo mostrado é o meio da faixa entre esse valor e o <i>justo pelo lucro</i> (LPAₙ ÷ (Ke − g)) — o modelo sobre o patrimônio castiga empresas que usam pouco capital (B3, WEG, Raia). Nos detalhes: os dois valores, Graham (√(22,5 × LPA × VPA)) e o consenso (<code>dados/alvos.json</code>, manual, 26/10 antes do pregão).</p>
     <p><b>Opções (só CALL)</b> — as regras do app de derivativos, aplicadas por papel: só nos vereditos COMPRAR/OBSERVAR <i>e</i> com grade líquida (tabela <code>OPCOES</code> na página; fora dela, compre a ação). Vencimento: o mensal (3ª sexta) com 25+ dias pela frente — dezembro (série L) antes de novembro (K), porque o valor no tempo derrete em 3 semanas; se cair em feriado, confirme. Strike um pouco dentro do dinheiro (≈ 95% da tela) para a posição principal; <b>trava de alta</b> (compra o strike baixo, vende ≈ 110%) quando a volatilidade implícita estiver acima de 2× a histórica (VH = desvio diário × √252) — hoje a implícita é o prêmio do pânico, e a queda dela come o ganho mesmo com o papel subindo. Entrada em 2–3 parcelas (a mínima do circuit breaker costuma vir 1–3 dias depois), só ordem limitada, spread ≤ 10% do prêmio, e só o que aceita perder 100%. Códigos de série e prêmios: no Profit. BOVA11 no dinheiro = repique do índice sem risco de um papel só.</p>
-    <p><b>Agosto/2026 — o patamar "Lula comum".</b> A alta de setembro/outubro foi aposta na vitória do Flávio Bolsonaro; com a reeleição, o referencial do que o mercado aceita para o Lula é agosto (mediana do fechamento de cada papel no mês; IBOV 172 mil, dólar 5,16, DI/35 ≈ 13,5%). O 27/10 fechou com o IBOV <i>em</i> agosto (175,7 mil) — a alta foi devolvida inteira — e ainda assim metade dos papéis está abaixo. <b>Esperado</b> = agosto × (1 + beta × ΔIBOV + beta$ × Δdólar). Papel saudável ≥ 5% abaixo do esperado, com o mesmo presidente e o mesmo balanço, é queda <b>irracional</b>: entra como COMPRAR. O que mudou desde agosto: (−) promessas de campanha, R$ 178–405 bi conforme a conta (IFI ~R$ 300 bi; Pinotti & Schwartsman R$ 356 bi; Folha R$ 290 bi em 2026–27), ~1% do PIB/ano — analistas põem a Selic de fim de 2027 em 12,25–12,75% em vez de 11,75% (+0,5 a +1 p.p.); é o que o botão <b>cenário Lula = agosto/26</b> usa (juro longo 13,5 + 0,75). (+) fim das bets desde 06/10: R$ 120–141 bi/ano que saíam da atividade (Made-USP, 0,9–1,1% do PIB) voltam ao consumo; CNC estima 0,7% de varejo a cada R$ 1 bi; descontando 38–44% que migra para o clandestino, R$ 50–80 bi/ano de consumo de massa — varejo, supermercado, farmácia, shoppings e a inadimplência dos bancos (coluna "ganha com o fim das bets").</p>
+    <p><b>Agosto/2026 — o patamar "Lula comum".</b> A alta de setembro/outubro foi aposta na vitória do Flávio Bolsonaro; com a reeleição, o referencial do que o mercado aceita para o Lula é agosto (mediana do fechamento de cada papel no mês; IBOV 172 mil, dólar 5,16, DI/35 ≈ 13,5%). O 27/10 fechou com o IBOV <i>em</i> agosto (175,7 mil) — a alta foi devolvida inteira — e ainda assim metade dos papéis está abaixo. <b>Esperado</b> = agosto × (1 + beta × ΔIBOV + beta$ × Δdólar). Papel saudável ≥ 5% abaixo do esperado, com o mesmo presidente e o mesmo balanço, é queda <b>irracional</b>: entra como COMPRAR. O que mudou desde agosto: (−) promessas de campanha, R$ 178–405 bi conforme a conta (IFI ~R$ 300 bi; Pinotti & Schwartsman R$ 356 bi; Folha R$ 290 bi em 2026–27), ~1% do PIB/ano — analistas põem a Selic de fim de 2027 em 12,25–12,75% em vez de 11,75% (+0,5 a +1 p.p.); <b>Calibração pela curva</b> (<code>dados/juros.json</code>): o Focus de 26/10 (coletado até 23/10) tinha Selic 13,25 → 11,75 → 10,0 → 10,0 (2026–29); o Tesouro Prefixado 2037 pagava 14,50% em 25/08 e 14,81% em 27/10 (pico de ~15,9 em 26/10, antes da recompra do Tesouro); o IPCA+ longo foi de 7,82 (ago) a 7,53 (27/10). Ou seja: <b>o juro longo de hoje está a 0,3 p.p. de agosto</b> — o choque de 26/10 foi quase todo devolvido na ponta longa; o custo da dívida (DI jan/28) está ~1,2 p.p. acima da véspera e no nível de agosto. É o que os botões de cenário usam: <b>Lula = agosto/26</b> (14,5), <b>hoje</b> (14,8), <b>pânico 26/10</b> (15,4) e <b>Focus</b> (12,7, a curva da véspera). (+) fim das bets desde 06/10: R$ 120–141 bi/ano que saíam da atividade (Made-USP, 0,9–1,1% do PIB) voltam ao consumo; CNC estima 0,7% de varejo a cada R$ 1 bi; descontando 38–44% que migra para o clandestino, R$ 50–80 bi/ano de consumo de massa — varejo, supermercado, farmácia, shoppings e a inadimplência dos bancos (coluna "ganha com o fim das bets").</p>
     <p><b>Hoje / excesso.</b> Sem preço de tela, a variação é estimada (pânico × beta × IBOV + beta dólar × dólar + castigo de balanço frágil + prêmio político). Excesso = variação − beta × IBOV: o que a queda tem além do mercado. Fontes: CVM (via base overnight), COTAHIST, Yahoo (15 min). Não é recomendação de investimento.</p>
   </details>
 </section>
@@ -587,14 +587,23 @@ tr.rm{display:none}
     for (const id of CHECKS) $(id).addEventListener("change", render);
     $("btFiltros").onclick = () => { for (const id of ["fNota", "fQueda", "fRoe", "fDiv", "fJusto", "fCons", "fAgo"]) $(id).value = ""; $("fVer").value = ""; for (const id of CHECKS) $(id).checked = false; render(); };
     reais = guardado.reais || {}; ibovReal = guardado.ibovReal ?? null; aba = guardado.aba || "compra";
-    $("btAgosto").onclick = () => { $("juroLongo").value = "14.25"; $("diBase").value = "12.8"; $("diNovo").value = "13.55"; render(); };
-    $("btPanico").onclick = () => { $("juroLongo").value = "15.4"; $("diBase").value = "12.8"; $("diNovo").value = "15.4"; render(); };
+
     for (const id of [...CAMPOS, "busca"]) $(id).addEventListener("input", render);
     document.querySelectorAll(".abas button").forEach((b) => { b.classList.toggle("on", b.dataset.aba === aba); b.onclick = () => { aba = b.dataset.aba; document.querySelectorAll(".abas button").forEach((o) => o.classList.toggle("on", o === b)); render(); }; });
     $("btReal").onclick = buscarReal;
     $("btLimpar").onclick = () => { reais = {}; ibovReal = null; $("statusReal").textContent = ""; render(); };
     try {
       base = await baixar("termometro.json");
+      // curva de juros (Focus + Tesouro Direto): cenários e a linha de referência
+      try {
+        const j = await baixar("juros.json");
+        $("cenarios").innerHTML = Object.entries(j.cenarios || {}).map(([k, c]) => `<button data-cen="${k}" title="${esc(c.explica)}">${esc(c.rotulo)}</button>`).join(" ");
+        $("cenarios").querySelectorAll("button").forEach((b) => b.onclick = () => { const c = j.cenarios[b.dataset.cen]; $("juroLongo").value = c.juroLongo; $("diBase").value = c.diBase; $("diNovo").value = c.diNovo; render(); });
+        const fs = j.focus?.selic || {}, tp = j.tesouro?.prefixado_longo || {}, ti = j.tesouro?.ipca_longo || {}, d35 = j.di?.jan35 || {};
+        const dt = (x) => x ? x.slice(5).split("-").reverse().join("/") : "";
+        $("curva").innerHTML = `<b>Curva de juros</b> · Selic ${f(j.selic?.valor, 2)}% · Focus ${dt(j.focus?.data)}: ${Object.entries(fs).map(([a, v]) => `${a.slice(2)}→${f(v, 2)}`).join(" · ")} (IPCA ${f(j.focus?.ipca?.["2026"], 2)} / ${f(j.focus?.ipca?.["2027"], 2)}) · ` +
+          `${esc(tp.titulo)}: ${f(tp.agosto, 2)}% (${dt(tp.agosto_data)}) → <b>${f(tp.hoje, 2)}%</b> (${dt(tp.hoje_data)}), pico ${f(tp.pico, 1)} · IPCA+ longo: ${f(ti.agosto, 2)} → ${f(ti.hoje, 2)} · DI jan/35: ${f(d35.vespera, 2)} (${dt(d35.vespera_data)}) → ${f(d35.pico, 2)} (${dt(d35.pico_data)}). <span class="fraco">Fonte e data em <code>dados/juros.json</code>.</span>`;
+      } catch { $("curva").textContent = ""; }
       try {
         const ind = await baixar("indice.json"), dias = {};
         for (const m of ind.diario.meses.slice(-2)) Object.assign(dias, (await baixar(m.arquivo)).dias);

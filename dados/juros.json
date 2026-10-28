@@ -1,0 +1,28 @@
+{
+  "nota": "Curva de juros usada pelo Termômetro: Focus (mediana) e Tesouro Direto, com data e fonte. Manual — edite quando sair o Focus de segunda. O app lê daqui os cenários (botões) e a linha 'curva de juros'.",
+  "atualizado": "2026-10-28",
+  "selic": {"valor": 13.75, "data": "2026-10-23", "fonte": "Copom (taxa vigente citada no Focus de 26/10)"},
+  "focus": {
+    "data": "2026-10-26", "coletado_ate": "2026-10-23", "fonte": "Boletim Focus/BCB — coletado antes do 2º turno",
+    "selic": {"2026": 13.25, "2027": 11.75, "2028": 10.0, "2029": 10.0},
+    "ipca": {"2026": 5.19, "2027": 4.34},
+    "cambio": {"2026": 5.05},
+    "pib": {"2026": 1.80, "2027": 1.31, "2028": 1.81, "2029": 2.0}
+  },
+  "tesouro": {
+    "prefixado_longo": {"titulo": "Tesouro Prefixado c/ juros semestrais 2037", "agosto": 14.50, "agosto_data": "2026-08-25", "hoje": 14.81, "hoje_data": "2026-10-27", "pico": 15.9, "pico_data": "2026-10-26", "fonte": "Rankia (25/08), InvestNews e Investidor10 (26–27/10, após recompra do Tesouro)"},
+    "prefixado_2029": {"agosto": 14.14, "agosto_data": "2026-08-25", "fonte": "Rankia"},
+    "ipca_longo": {"titulo": "Tesouro IPCA+ 2035 / 2040", "agosto": 7.82, "agosto_data": "2026-08-25", "hoje": 7.53, "hoje_data": "2026-10-27", "pico": 8.0, "fonte": "Rankia (IPCA+ 2035, 25/08); InfoMoney (IPCA+ 2040, 27/10)"}
+  },
+  "di": {
+    "jan35": {"vespera": 12.70, "vespera_data": "2026-10-23", "pico": 15.375, "pico_data": "2026-10-26", "fonte": "CNN Brasil"},
+    "jan28": {"vespera": 12.825, "vespera_data": "2026-10-23", "pico": 14.295, "pico_data": "2026-10-26", "fonte": "InfoMoney ao vivo 26/10"},
+    "jan27": {"agosto": 13.615, "agosto_data": "2026-08-31", "vespera": 13.47, "pico": 13.87, "fonte": "DGABC (31/08), InfoMoney (26/10)"}
+  },
+  "cenarios": {
+    "agosto": {"rotulo": "cenário Lula = agosto/26", "juroLongo": 14.5, "diBase": 12.8, "diNovo": 13.9, "explica": "juro longo = Prefixado 2037 de 25/08 (14,50%); custo da dívida = DI jan/28 da véspera (12,8) → nível de agosto (~13,9, Prefixado 2029 a 14,14 em agosto)"},
+    "hoje": {"rotulo": "cenário hoje (27/10)", "juroLongo": 14.8, "diBase": 12.8, "diNovo": 14.0, "explica": "Prefixado 2037 a 14,81% em 27/10 após a recompra do Tesouro; DI jan/28 ~14,0"},
+    "panico": {"rotulo": "cenário pânico 26/10", "juroLongo": 15.4, "diBase": 12.8, "diNovo": 14.3, "explica": "DI jan/35 a 15,375% e DI jan/28 a 14,295% na abertura de 26/10"},
+    "focus": {"rotulo": "cenário Focus (23/10)", "juroLongo": 12.7, "diBase": 12.8, "diNovo": 12.8, "explica": "DI jan/35 da véspera (12,70) — a curva coerente com o Focus pré-eleição (Selic 13,25 → 11,75 → 10 → 10)"}
+  }
+}
