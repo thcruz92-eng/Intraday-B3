@@ -19,6 +19,10 @@ Para cada papel do universo da coleta:
     um dos últimos exercícios (para medir "lucro constante")
   - preço-alvo de consenso de bancos/casas, de dados/alvos.json (manual,
     com fonte e data — não há API pública confiável para isso)
+  - REFERÊNCIA DE AGOSTO/2026: mediana do fechamento de cada papel (e do
+    IBOV e do dólar) em agosto — o patamar "Lula comum", antes da alta
+    pela aposta na vitória do Flávio Bolsonaro e antes do tombo de 26/10
+  - quem ganha com o fim das bets (varejo/consumo): lista manual BETS
 
 A NOTA de saúde e o PREÇO JUSTO são calculados na própria página, porque
 dependem do juro que você digita (DI longo, prêmio de risco, crescimento).
@@ -59,6 +63,29 @@ ALIAS_CNPJ = {
 def eh_fundo(t, reg):
     return t.endswith("11") and "nome" not in reg and "financeira" not in reg
 
+
+# quem ganha com o fim das bets (MP 1.394/2026, desde 06/10): o dinheiro
+# das apostas (R$ 120–141 bi/ano, Made-USP) volta ao consumo de massa
+BETS = {
+    "LREN3": "varejo de moda", "CEAB3": "varejo de moda", "RIAA3": "varejo de moda", "AZZA3": "varejo de moda",
+    "GMAT3": "supermercado", "ASAI3": "atacarejo", "PCAR3": "supermercado", "MGLU3": "varejo", "VIVA3": "joias",
+    "PGMN3": "farmácia", "RADL3": "farmácia", "PNVL3": "farmácia", "ALPA4": "calçados", "VULC3": "calçados",
+    "ALOS3": "shoppings", "MULT3": "shoppings", "IGTI11": "shoppings", "ABEV3": "bebidas", "SBFG3": "varejo esportivo",
+    "LJQQ3": "varejo", "SMFT3": "academias", "CVCB3": "turismo", "SAUD3": "planos odontológicos", "ITSA4": "crédito/consumo (Itaú)",
+    "ITUB4": "crédito/inadimplência", "BBDC4": "crédito/inadimplência", "SANB11": "crédito/inadimplência", "BPAN4": "crédito/inadimplência",
+}
+REF_MES = "2026-08"
+ELEICAO = "2026-10-23"  # último pregão antes do 2º turno
+
+# commodities/exportadoras: o preço delas segue o produto e o dólar, não a eleição —
+# ficar abaixo de agosto NÃO conta como irracional
+COMMODITY = {
+    "VALE3": "minério de ferro", "CMIN3": "minério de ferro", "BRAP4": "minério (Vale)", "USIM5": "aço", "CSNA3": "aço/minério",
+    "GGBR4": "aço", "GOAU4": "aço (Gerdau)", "SUZB3": "celulose", "KLBN11": "celulose", "KLBN4": "celulose", "KLBN3": "celulose",
+    "PETR4": "petróleo", "PETR3": "petróleo", "PRIO3": "petróleo", "BRAV3": "petróleo", "RECV3": "petróleo", "CSAN3": "açúcar/etanol/combustível",
+    "RAIZ4": "açúcar/etanol", "SMTO3": "açúcar/etanol", "SLCE3": "grãos", "AGRO3": "grãos/terras", "BEEF3": "carne", "MBRF3": "carne",
+    "JBSS3": "carne", "BRFS3": "carne", "AURA33": "ouro", "CBAV3": "alumínio", "UNIP6": "químicos", "DXCO3": "madeira/painéis",
+}
 
 # units: quantas ações compõem uma (VPA e LPA por unit = por ação × isto)
 UNITS = {"IGTI11": 3, "ENGI11": 5, "SANB11": 2, "BPAC11": 3, "KLBN11": 5, "SAPR11": 5,
@@ -250,6 +277,16 @@ def fundamentos_por_ticker(cvm):
     return out
 
 
+def referencia_mes(fech, mes):
+    """mediana do fechamento no mês de referência, por série"""
+    out = {}
+    for t, serie in fech.items():
+        vs = [v for d, v in serie.items() if d.startswith(mes)]
+        if len(vs) >= 10:
+            out[t] = statistics.median(vs)
+    return out
+
+
 def series_diarias():
     """fechamento diário (R$) dos papéis (COTAHIST) e do IBOV/USDBRL (último candle de 60 min)"""
     fech = {}
@@ -329,9 +366,13 @@ def main():
 
     d_ibov, ibov_f, ibov_ant = ultimo_dia(fech["IBOV"])
     d_usd, usd_f, usd_ant = ultimo_dia(fech.get("USDBRL", {}))
+    ref = referencia_mes(fech, REF_MES)
     mercado = {
-        "ibov": {"data": d_ibov, "fech": ibov_f, "var": None if not ibov_ant else round(ibov_f / ibov_ant - 1, 5)},
-        "usd": {"data": d_usd, "fech": usd_f, "var": None if not usd_ant else round(usd_f / usd_ant - 1, 5)},
+        "ibov": {"data": d_ibov, "fech": ibov_f, "var": None if not ibov_ant else round(ibov_f / ibov_ant - 1, 5), "ago": ref.get("IBOV")},
+        "usd": {"data": d_usd, "fech": usd_f, "var": None if not usd_ant else round(usd_f / usd_ant - 1, 5), "ago": ref.get("USDBRL")},
+        "refMes": REF_MES,
+        "eleicao": ELEICAO,
+        "ibovPre": fech["IBOV"].get(ELEICAO),
     }
 
     papeis = {}
@@ -362,6 +403,14 @@ def main():
             ajustar_escala_acoes(reg)
         if t in alvos:
             reg["alvo"] = alvos[t]
+        if t in ref:
+            reg["ago"] = round(ref[t], 2)
+        if t in BETS:
+            reg["bets"] = BETS[t]
+        if t in COMMODITY:
+            reg["commodity"] = COMMODITY[t]
+        if ELEICAO in serie:
+            reg["pre"] = serie[ELEICAO]
 
         if t in ESTATAIS:
             reg["estatal"] = ESTATAIS[t]
@@ -407,6 +456,10 @@ def main():
             "anos": "[ano, lucro, receita, ebit] de cada exercício fechado (DFP)",
             "alvo": "preço-alvo de consenso, de dados/alvos.json: {preco, fonte, data, n}",
             "varDia": "variação do último pregão (fech / fechAnt − 1)",
+            "ago": f"mediana do fechamento em {REF_MES} (referência 'Lula comum')",
+            "bets": "setor que ganha com o fim das bets",
+            "commodity": "exportadora/commodity: o preço segue o produto, não a eleição",
+            "pre": f"fechamento em {ELEICAO}, último pregão antes do 2º turno",
         },
         "papeis": papeis,
     }

@@ -1,9 +1,10 @@
 # Termômetro B3 — swing trade no pânico
 
-**Versão atual: v2.2 (26/10/2026)** — aparece ao lado do título na página.
+**Versão atual: v2.3 (28/10/2026)** — aparece ao lado do título na página.
 
 | Versão | Data | O que mudou |
 |---|---|---|
+| v2.3 | 28/10/2026 | referência agosto/2026 ("Lula comum") por papel e no IBOV/dólar, esperado pelo beta, irracionalidade no veredito e no resumo, filtro e ordem "abaixo de agosto", botões de cenário (Lula = agosto / pânico 26/10), quem ganha com o fim das bets, variação real do último pregão da base |
 | v2.2 | 26/10/2026 | barra de filtros combináveis sobre a lista: nota, veredito, excesso vs IBOV, queda, lucro em 5/5 anos, caixa líquido, ROE, dív.líq/EBIT, % abaixo do justo/consenso, opções líquidas |
 | v2.1 | 26/10/2026 | coluna **opções (só CALL)** por papel com as regras do app de derivativos: vencimento, strike, trava de alta, VH, execução |
 | v2.0 | 26/10/2026 | lista única com abas, veredito por papel, resumo em texto, detalhes ao clicar, cartões no celular, preço justo como faixa patrimônio–lucro |
